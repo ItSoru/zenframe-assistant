@@ -1,4 +1,4 @@
-/* Zenframe Assistant host bridge, v1.5.0. ES3 for After Effects ExtendScript. */
+/* Zenframe Assistant host bridge, v1.5.1. ES3 for After Effects ExtendScript. */
 var ZenframeAssistant = (function () {
 
   var effectCache = null;
@@ -424,6 +424,27 @@ var ZenframeAssistant = (function () {
       } finally {
         app.endUndoGroup();
       }
+    }
+    // 1.5.1, panel-only: comp markers at the times the panel worked out from the music, after the user approved them.
+    if (name === 'ae_add_markers') {
+      var mc = comp(a.compId), mk = a.markers, mAdded = 0, mSkipped = 0, mFd = 1 / (mc.frameRate || 30), mProp = mc.markerProperty, mHave = [], mi, mj;
+      if (!mk || !mk.length) fail('There are no markers to add.');
+      if (mk.length > 2000) fail('Too many markers in one go (2000 at most).');
+      for (mi = 1; mi <= mProp.numKeys; mi++) mHave.push(mProp.keyTime(mi));
+      app.beginUndoGroup('Zenframe: ' + String(a.label || 'Add comp markers').slice(0, 80));
+      try {
+        for (mi = 0; mi < mk.length; mi++) {
+          var mt = Number(mk[mi].t), mDup = false;
+          if (!(mt >= 0 && mt <= mc.duration)) { mSkipped++; continue; }
+          for (mj = 0; mj < mHave.length; mj++) if (Math.abs(mHave[mj] - mt) < mFd / 2) { mDup = true; break; }
+          if (mDup) { mSkipped++; continue; }
+          mProp.setValueAtTime(mt, new MarkerValue(String(mk[mi].text || '').slice(0, 120)));
+          mHave.push(mt); mAdded++;
+        }
+      } finally {
+        app.endUndoGroup();
+      }
+      return { added: mAdded, skippedBecauseAlreadyMarked: mSkipped };
     }
     // Panel-only: where After Effects keeps its scripts and presets (the panel lists them).
     if (name === 'ae_tool_paths') {

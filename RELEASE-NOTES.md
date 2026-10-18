@@ -1,3 +1,14 @@
+# Version 1.5.1
+
+- **Markers on the music.** Ask Zeni for markers on the hits and he puts real comp markers on the timeline, with no script. By default they go on the strong bass hits; ask for snares too, for medium or all hits, or for the beats. Zenframe finds every hit itself and places each marker on its exact frame, you approve the count first, and it is one Undo step. Markers already on the timeline are kept.
+- **Hit times are exact.** Hits used to be found about 80 ms early. They are now placed at the moment the sound actually starts (within a millisecond or two in tests), and the beat grid Zeni reads for cut-to-beat sync is lined up with the real beats.
+- **Tempo is read better.** A song at 145 BPM was read as 72.5, half of the real tempo. When the faster pulse is about as strong as the slow one, Zeni now takes the faster tempo, which is the one you count.
+- **Headphone effects follow the drums.** Light comes out of his headphones on kicks, snares, claps and big accents, and no longer on synth stabs, vocals or hi-hats. Every hit is judged against the hits around it instead of the loudest moment of the whole song, so quieter kicks and quieter sections get their effect too. The same hit is no longer found twice.
+- Fixed: an effect could fire twice for the same hit when After Effects re-sent the playhead position during playback.
+- Zeni's music report says when it lists only the first 80 hits.
+- Songs Zeni analyzed before are analyzed once more in the background so they get the new hits.
+- **The source code is public.** Zenframe Assistant is on GitHub under a source-available license: anyone can read the code, and new versions come only from Zenframe Labs. See LICENSE.txt.
+
 # Version 1.5.0
 
 - **Headphone effects on the beat hits.** While Zeni dances, every hit in the music (kicks, snares, big accents) sends light out of his headphones, in your accent color with a glow and twinkling stars. Quiet parts stay quiet: it follows the actual hits in the song, not a steady beat. Stronger hits send more.

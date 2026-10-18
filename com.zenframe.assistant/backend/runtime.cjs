@@ -1,5 +1,5 @@
 'use strict';
-// Zenframe Assistant runtime, v1.5.0.
+// Zenframe Assistant runtime, v1.5.1.
 // Two ways to reach an AI:
 //  1. "Claude Code": runs the user's own, unmodified Claude Code and exposes the After Effects
 //     tools to it over a local, token-protected bridge (127.0.0.1 only) via mcp.cjs.
@@ -18,8 +18,8 @@ const extensions = require('./extensions.cjs');
 
 const MIN_NODE_MAJOR = 18;
 const isWindows = process.platform === 'win32';
-const TOOL_LABELS = { ae_get_context: 1, ae_inspect_layer: 1, ae_search_effects: 1, ae_apply_actions: 1, ae_stage_script: 1, ae_list_tools: 1, ae_open_panel: 1, ae_run_script: 1, ae_render_frames: 1, ae_analyze_audio: 1, ae_style_guide: 1, ae_study_project: 1 };
-const EDIT_ONLY = { ae_apply_actions: 1, ae_run_script: 1 };
+const TOOL_LABELS = { ae_get_context: 1, ae_inspect_layer: 1, ae_search_effects: 1, ae_apply_actions: 1, ae_stage_script: 1, ae_list_tools: 1, ae_open_panel: 1, ae_run_script: 1, ae_render_frames: 1, ae_analyze_audio: 1, ae_add_markers: 1, ae_style_guide: 1, ae_study_project: 1 };
+const EDIT_ONLY = { ae_apply_actions: 1, ae_run_script: 1, ae_add_markers: 1 };
 const SCAN_TTL = 2 * 60 * 1000;
 
 /* ---------- Finding Claude Code and Node.js ---------- */
@@ -169,6 +169,7 @@ function systemPrompt(mode, settings, poweredBy) {
     'WHEN THE USER ASKS FOR FEEDBACK, A REVIEW OR AN ANALYSIS OF THEIR EDIT: they are an editor with a style of their own, and editing communities (MMV, AMV, anime and manga edits, velocity, flow, typography and so on) deliberately use things a generic video checklist would call mistakes: low or choppy frame rates, slowed or interpolated frame sequences and image sequences, stacked or overlapping adjustment layers for shakes, build-ups and transitions, one-frame flashes and offsets, heavy or doubled grades, hard audio cuts, held frames, black or silent endings, duplicate footage items and messy projects. Treat every choice as intentional. Never list style choices as problems or suggest changing them unless the user asks for that kind of advice. ' +
     'Before a review or creative advice, work out the style (from the user\'s settings, their words, or what you see and hear) and read its guide with ae_style_guide; if it fits none, ask. ' +
     'To learn from a project file the user points to (an .aep path), use ae_study_project; it works without opening the project. ' +
+    'MARKERS ON THE MUSIC: when the user wants markers on hits, beats, kicks, bass or snares, call ae_add_markers. It places real comp markers on the composition timeline at exact frames and finds every hit itself, so never write a script for it, never use layer markers for it and never type out times. Default to strong bass hits unless the user asks for more; if they ask for snares as well, use bass_and_snare. After it runs, say how many markers went where in a sentence. ae_analyze_audio lists only a sample of the hits, so do not use it to build markers. ' +
     'For a review, call ae_analyze_audio first, then ae_render_frames on the moments that matter (around strong hits, cuts that sit off the beat, the drop, transitions, the ending), and base what you say on what you saw and heard. Say which frames you looked at. ' +
     'If you do not know their style and what feedback they want, first give a short, neutral breakdown of how the edit is built (pacing, cut rhythm, effect patterns, grade) and ask what style it is and what they want feedback on, instead of a list of problems. ' +
     'Only flag things that are broken in any style, and phrase them as questions: an effect that cannot change anything (for example an Amount of 0 with only other properties keyframed), missing or offline footage, expression errors, a keyframe that likely landed a frame off from the cut it belongs to, a layer that looks disabled by accident. Leave out generic praise and project cleanup tips. ' +
@@ -178,7 +179,7 @@ function systemPrompt(mode, settings, poweredBy) {
     'ExtendScript is ES3: no let/const, arrow functions, modern array methods or assumed JSON global. Tools run in an Undo group. Report partial failures honestly. Do not make unrelated edits. ' +
     (mode === 'edit'
       ? 'EDIT PROJECT MODE: use structured actions for supported edits. ' + approval + 'ae_run_script always asks the user first. For more complex work, stage a complete script for review; it will not run automatically.'
-      : 'DRAFT SCRIPTS MODE: read-only tools, ae_open_panel and ae_stage_script only. Stage requested JSX in the editor. Never apply project actions or run installed scripts.');
+      : 'DRAFT SCRIPTS MODE: read-only tools, ae_open_panel and ae_stage_script only. Stage requested JSX in the editor. Never apply project actions or run installed scripts. Comp markers on the music are a project edit, so ae_add_markers is not available here: tell the user to switch the box next to the Send button to Edit project and ask again, instead of writing a script for it.');
 }
 
 class Runtime {
@@ -229,7 +230,9 @@ class Runtime {
     if (!this.active || this.stopped) return { error: 'No active request' };
     if (!TOOL_LABELS[name] || !definitions.some(t => t.name === name)) return { error: 'Unknown tool' };
     args = args && typeof args === 'object' ? args : {};
-    if (EDIT_ONLY[name] && this.mode !== 'edit') return { error: 'Draft scripts mode cannot modify the project. Use ae_stage_script, or ask the user to switch to Edit project.' };
+    if (EDIT_ONLY[name] && this.mode !== 'edit') return { error: name === 'ae_add_markers'
+      ? 'Comp markers need Edit project mode. Ask the user to switch the box next to the Send button to Edit project and try again. Do not write a script for it.'
+      : 'Draft scripts mode cannot modify the project. Use ae_stage_script, or ask the user to switch to Edit project.' };
     this.emit('tool', { name, status: 'running' });
     try {
       let value;
@@ -245,6 +248,8 @@ class Runtime {
         const fn = name === 'ae_render_frames' ? this.options.renderFrames : this.options.analyzeAudio;
         if (typeof fn !== 'function') throw new Error('This is only available in the panel inside After Effects.');
         value = await fn(args);
+      } else if (name === 'ae_add_markers') {
+        value = await this.addMarkers(args);
       } else if (name === 'ae_list_tools') {
         value = extensions.list(await this.installed(args.refresh === true), args);
       } else if (name === 'ae_open_panel') {
@@ -318,6 +323,27 @@ class Runtime {
       a.presetPath = hit.path;
     }
     return null;
+  }
+
+  // 1.5.1: comp markers on the hits or beats of the music. The panel works the times out from the song itself; the user
+  // sees what will be added, and only an approved plan reaches After Effects.
+  async addMarkers(args) {
+    if (typeof this.options.planMarkers !== 'function') throw new Error('This is only available in the panel inside After Effects.');
+    const plan = await this.options.planMarkers(args);
+    if (plan.error) return plan;
+    if (!plan.markers.length) return { error: 'No ' + (plan.what === 'beats' ? 'beats' : plan.strength + ' hits of that kind') + ' were found in the music, so no markers were added.', message: 'Try strength medium or all, or another kind of hit.' };
+    if (this.settings.confirmEdits !== false) {
+      const approved = await new Promise(resolve => {
+        this.pendingConfirm = resolve;
+        this.options.onConfirm({ label: 'Add ' + plan.markers.length + ' comp markers', summary: plan.summary }, resolve);
+      });
+      this.pendingConfirm = null;
+      if (this.stopped) return { error: 'The request was stopped. No markers were added.' };
+      if (!approved) return { error: 'The user declined. No markers were added. Ask what they would like instead.' };
+    }
+    const r = await this.options.callHost('ae_add_markers', { compId: plan.compId, label: 'Add ' + plan.markers.length + ' comp markers', markers: plan.markers });
+    if (r && r.error) return r;
+    return Object.assign({ comp: plan.compName, kind: plan.what, strength: plan.strength, found: plan.markers.length, firstAt: plan.markers[0].t, lastAt: plan.markers[plan.markers.length - 1].t, message: 'Comp markers are on the timeline. One Undo step in After Effects.' }, r);
   }
 
   // Check the batch in AE without changing anything, show it to the user, apply only if approved.

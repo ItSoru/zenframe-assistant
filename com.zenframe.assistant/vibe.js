@@ -19,8 +19,9 @@
   var memo = {};
   var meter = { status: 'off', peak: 0, loudAt: 0, sessions: 0, stop: null, reason: '' };
   try { memo = JSON.parse(localStorage.getItem(CACHE_KEY)) || {}; } catch (e) { memo = {}; }
-  // 1.5.0: songs analyzed before the hits were kept get analyzed again (once), so the headphone effects have them.
-  Object.keys(memo).forEach(function (k) { if (!memo[k] || !memo[k].r || !memo[k].r.hits) delete memo[k]; });
+  // Songs analyzed with an older hit detector (or before hits were kept) are analyzed again, once, in the background.
+  var HIT_VERSION = 3;
+  Object.keys(memo).forEach(function (k) { if (!memo[k] || !memo[k].r || !memo[k].r.hits || memo[k].r.hv !== HIT_VERSION) delete memo[k]; });
 
   function hostBusy() { return (window.ZenframeHostBusy || 0) > 0; }
   function now() { return performance.now(); }
@@ -77,7 +78,7 @@
             try {
               var ch = []; for (var i = 0; i < audio.numberOfChannels; i++) ch.push(audio.getChannelData(i));
               var est = window.ZenframeTempo.analyze(ch, audio.sampleRate, { detail: true });
-              memo[key] = { r: { bpm: est.bpm, period: est.period, offset: est.offset, energy: est.energy, hits: compactHits(est.hits) }, at: Date.now() }; saveMemo();
+              memo[key] = { r: { bpm: est.bpm, period: est.period, offset: est.offset, energy: est.energy, hits: compactHits(est.hits), hv: HIT_VERSION }, at: Date.now() }; saveMemo();
             } catch (e) { failedKeys[key] = true; }
             try { ctx.close(); } catch (e) {}
             done();
@@ -86,11 +87,11 @@
       } catch (e) { failedKeys[key] = true; done(); }
     }, 20);
   }
-  // The hits worth a headphone effect (kicks, snares, strong accents), as [[seconds, strength], ...].
-  var HIT_MIN = 0.35, HIT_GAP = 0.09;
+  // The hits worth a headphone effect (kicks, snares, strong accents) come picked and rated by the tempo analysis;
+  // they are stored as [[seconds, strength], ...].
   function compactHits(list) {
-    var out = [], last = -1;
-    (list || []).forEach(function (h) { if (h.s >= HIT_MIN && h.t - last >= HIT_GAP) { out.push([Math.round(h.t * 1000) / 1000, h.s]); last = h.t; } });
+    var out = [];
+    (list || []).forEach(function (h) { out.push([Math.round((h.te !== undefined ? h.te : h.t) * 1000) / 1000, h.s]); });
     return out;
   }
   var lastLayers = [];
@@ -211,8 +212,10 @@
   // (a loop, a seek, another song) starts over without firing everything in between.
   var hitAt = null, hitLog = [];
   function hitsSince(song, ft) {
-    var prev = hitAt, id = song.name + '|' + song.start; hitAt = { id: id, t: ft };
-    var list = song.hits, out = [];
+    var prev = hitAt, id = song.name + '|' + song.start, list = song.hits, out = [];
+    // The clock stepped back a little (the playhead was re-read from After Effects): keep the later mark so no hit fires twice.
+    if (prev && prev.id === id && ft < prev.t && prev.t - ft < 0.3) return out;
+    hitAt = { id: id, t: ft };
     if (!list || !prev || prev.id !== id || ft < prev.t || ft - prev.t > 0.5) return out;
     var lo = 0, hi = list.length;
     while (lo < hi) { var mid = (lo + hi) >> 1; if (list[mid][0] <= prev.t) lo = mid + 1; else hi = mid; }

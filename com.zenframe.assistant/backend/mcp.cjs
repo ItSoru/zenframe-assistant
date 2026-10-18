@@ -8,7 +8,7 @@ const definitions = require('./tools.cjs');
 const port = Number(process.env.ZENFRAME_PORT);
 const token = process.env.ZENFRAME_TOKEN;
 // Edits may wait for the user to click Apply, so they get a longer limit.
-const TIMEOUTS = { ae_apply_actions: 15 * 60 * 1000, ae_run_script: 15 * 60 * 1000, ae_render_frames: 10 * 60 * 1000, ae_analyze_audio: 5 * 60 * 1000, ae_study_project: 10 * 60 * 1000 };
+const TIMEOUTS = { ae_apply_actions: 15 * 60 * 1000, ae_add_markers: 15 * 60 * 1000, ae_run_script: 15 * 60 * 1000, ae_render_frames: 10 * 60 * 1000, ae_analyze_audio: 5 * 60 * 1000, ae_study_project: 10 * 60 * 1000 };
 const DEFAULT_TIMEOUT = 2 * 60 * 1000;
 
 function send(obj) { process.stdout.write(JSON.stringify(obj) + '\n'); }
@@ -45,7 +45,7 @@ readline.createInterface({ input: process.stdin, crlfDelay: Infinity }).on('line
   try {
     let result;
     if (r.method === 'initialize') {
-      result = { protocolVersion: r.params.protocolVersion, capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'zenframe-aftereffects', version: '1.5.0' } };
+      result = { protocolVersion: r.params.protocolVersion, capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'zenframe-aftereffects', version: '1.5.1' } };
     } else if (r.method === 'ping') {
       result = {};
     } else if (r.method === 'tools/list') {

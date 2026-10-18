@@ -1,8 +1,8 @@
-/* Zenframe Assistant panel, v1.5.0. */
+/* Zenframe Assistant panel, v1.5.1. */
 (function () {
   'use strict';
 
-  var VERSION = '1.5.0';
+  var VERSION = '1.5.1';
   // Set this to your download page to show a "Check for updates" link in Settings.
   var UPDATE_URL = '';
   var MAX_CONVS = 20, MAX_MESSAGES = 80, PRIOR_MESSAGES = 16, MAX_SAVED_CHARS = 20000;
@@ -452,7 +452,7 @@
       }
     }
     if (e.type === 'tool') {
-      var labels = { ae_get_context: 'Read composition', ae_inspect_layer: 'Inspect layer properties', ae_search_effects: 'Find installed effects', ae_apply_actions: 'Edit project', ae_stage_script: 'Draft a script', ae_list_tools: 'Look through your installed tools', ae_open_panel: 'Open a panel', ae_run_script: 'Run your script', ae_render_frames: 'Look at rendered frames', ae_analyze_audio: 'Listen to the music', ae_style_guide: 'Read the style guide', ae_study_project: 'Study a project file' };
+      var labels = { ae_get_context: 'Read composition', ae_inspect_layer: 'Inspect layer properties', ae_search_effects: 'Find installed effects', ae_apply_actions: 'Edit project', ae_stage_script: 'Draft a script', ae_list_tools: 'Look through your installed tools', ae_open_panel: 'Open a panel', ae_run_script: 'Run your script', ae_render_frames: 'Look at rendered frames', ae_analyze_audio: 'Listen to the music', ae_add_markers: 'Add comp markers', ae_style_guide: 'Read the style guide', ae_study_project: 'Study a project file' };
       if (e.data.status === 'running' && c.reply) { c.textUsed = (c.lastText || '').length; c.reply = null; }
       if (e.data.status === 'running') {
         // 1.4.0: back-to-back steps share one collapsible group, so long analyses don't flood the chat.
@@ -470,7 +470,7 @@
         c.activeTool = null;
         if (c.toolGroup) { var st = c.toolGroup.steps[c.toolGroup.steps.length - 1]; if (st) st.status = e.data.status; updateGroup(c.toolGroup, null); }
       }
-      if (applyingCard && (e.data.name === 'ae_apply_actions' || e.data.name === 'ae_run_script') && e.data.status !== 'running') {
+      if (applyingCard && (e.data.name === 'ae_apply_actions' || e.data.name === 'ae_run_script' || e.data.name === 'ae_add_markers') && e.data.status !== 'running') {
         applyingCard.querySelector('.confirm-outcome').textContent = e.data.status === 'done' ? (e.data.name === 'ae_run_script' ? 'Ran. Use Undo in After Effects to revert.' : 'Applied. Use Undo in After Effects to revert.') : 'Could not finish: ' + e.data.detail;
         applyingCard = null;
       }
@@ -702,6 +702,7 @@
           renderFrames: function (a) { return window.ZenframeFrames ? window.ZenframeFrames.render(a, host) : Promise.resolve({ error: 'Frame rendering is not loaded.' }); },
           analyzeAudioFile: function (p) { return window.ZenframeListen ? window.ZenframeListen.analyzePath(p) : Promise.reject(Error('Audio analysis is not loaded.')); },
           analyzeAudio: function (a) { return window.ZenframeListen ? window.ZenframeListen.analyze(a, host) : Promise.resolve({ error: 'Audio analysis is not loaded.' }); },
+          planMarkers: function (a) { return window.ZenframeListen ? window.ZenframeListen.planMarkers(a, host) : Promise.resolve({ error: 'Audio analysis is not loaded.' }); },
           openExtension: function (id) { nativeCEP.requestOpenExtension(id, ''); } });
         if (runtime.pickFile && /win/i.test(navigator.platform)) window.ZenframePickFile = function (o) { return runtime.pickFile(o); };
         if (window.ZenframeUsage) window.ZenframeUsage.onRefresh(refreshUsage);
