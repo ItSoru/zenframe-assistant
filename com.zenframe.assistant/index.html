@@ -13,8 +13,10 @@
 <link rel="stylesheet" href="controls.css">
 <link rel="stylesheet" href="effort.css">
 <link rel="stylesheet" href="markdown.css">
+<link rel="stylesheet" href="wallpaper.css">
 </head>
 <body>
+<div id="wallpaper" aria-hidden="true"></div>
 <header>
   <div class="brand"><span class="mark" aria-hidden="true">z<span>·</span></span><div><strong>zenframe<span class="muted"> / assistant</span></strong><small>YOUR AFTER EFFECTS COPILOT</small></div></div>
   <button id="newChat" class="icon" title="New conversation" aria-label="New conversation">＋</button>
@@ -160,7 +162,7 @@
 
   <section class="appearance" aria-labelledby="appearanceTitle">
     <h3 id="appearanceTitle">Accent color</h3>
-    <p class="help">Change the highlight color. The black background stays the same.</p>
+    <p class="help">Change the highlight color.</p>
     <div class="accent-presets" role="group" aria-label="Accent presets">
       <button type="button" data-accent="#b4a0f7" aria-label="Violet" title="Violet" aria-pressed="true"><span style="--swatch:#b4a0f7" aria-hidden="true"></span></button>
       <button type="button" data-accent="#56c8e8" aria-label="Ice blue" title="Ice blue" aria-pressed="false"><span style="--swatch:#56c8e8" aria-hidden="true"></span></button>
@@ -176,6 +178,29 @@
     <p id="accentStatus" class="help" role="status"></p>
   </section>
 
+  <section class="wallpaper-settings" aria-labelledby="wallpaperTitle">
+    <h3 id="wallpaperTitle">Wallpaper</h3>
+    <p class="help">Show an image behind the panel with a glass look. It is darkened just enough that text always stays readable, and it stays on this computer.</p>
+    <div class="wallpaper-row">
+      <div id="wallpaperPreview" class="wallpaper-preview empty" aria-hidden="true"></div>
+      <div class="wallpaper-buttons">
+        <button id="wallpaperChoose" type="button" class="secondary">Choose image…</button>
+        <button id="wallpaperRemove" type="button" class="secondary" hidden>Remove</button>
+      </div>
+    </div>
+    <input id="wallpaperFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+    <div id="wallpaperOptions" hidden>
+      <div id="wallpaperPaletteRow">
+        <p class="help">Colors from your image (click one to use it as the accent):</p>
+        <div id="wallpaperPalette" class="accent-presets" role="group" aria-label="Colors from the wallpaper"></div>
+      </div>
+      <label class="check"><input id="wallpaperMatch" type="checkbox" checked> Match the accent color to the wallpaper</label>
+      <label for="wallpaperBlur" class="range-label">Glass blur <span id="wallpaperBlurValue">16 px</span></label>
+      <input id="wallpaperBlur" type="range" min="0" max="60" value="16">
+    </div>
+    <p id="wallpaperStatus" class="help" role="status"></p>
+  </section>
+
   <div class="settings-note">
     <strong>Local panel. Your own AI.</strong>
     <p>Prompts and the project details Zeni reads (comp names, layer names, properties) are sent to the AI provider you chose to generate replies. Media files are not uploaded. Zenframe has no servers and collects no analytics.</p>
@@ -183,11 +208,12 @@
   </div>
   <button id="clearHistory" class="secondary">Delete all conversations</button>
   <p class="help">Deletes every conversation saved in this panel. To remove just one, close its tab.</p>
-  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.0.5</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
+  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.0.6</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
 </section>
 
 <footer><span><i></i> ZENFRAME</span><span>Unofficial · bring your own AI</span></footer>
 <script src="theme.js"></script>
+<script src="wallpaper.js"></script>
 <script src="motion.js"></script>
 <script src="effort.js"></script>
 <script src="markdown.js"></script>

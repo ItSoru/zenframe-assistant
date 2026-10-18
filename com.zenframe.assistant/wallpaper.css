@@ -1,0 +1,71 @@
+/* Zenframe Assistant 1.0.6: wallpaper with a liquid-glass look. Everything here applies only while a
+   wallpaper is set (html.has-wallpaper); without one the panel looks exactly as before.
+   Readability: wallpaper.js sets --wp-scrim so the brightest area of the image is darkened to at most
+   the brightness of #616161, and every area with text is glass with a dark tint of about 50% on top,
+   so text never sits on anything lighter than about #454545. The Blur slider sets the glass blur. */
+
+#wallpaper { display: none; }
+html.has-wallpaper { background: #000; }
+html.has-wallpaper #wallpaper {
+  display: block; position: fixed; inset: -48px; z-index: -1; pointer-events: none;
+  background-color: #000; background-size: cover; background-position: center;
+}
+html.has-wallpaper #wallpaper::after { content: ''; position: absolute; inset: 0; background: rgba(2, 2, 4, var(--wp-scrim, .6)); }
+
+html.has-wallpaper {
+  --muted: #c4c2cc;
+  --line: rgba(255, 255, 255, .13);
+  --glass: rgba(10, 10, 14, .52);
+  --glass-strong: rgba(10, 10, 14, .76);
+  --glass-edge: rgba(255, 255, 255, .11);
+  --glass-light: rgba(255, 255, 255, .16);
+}
+html.has-wallpaper body { background: transparent !important; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); }
+html.has-wallpaper .primary, html.has-wallpaper .send, html.has-wallpaper .badge,
+html.has-wallpaper .mark, html.has-wallpaper .ef-pill-label { text-shadow: none; }
+
+/* Glass surfaces: a dark tint with the wallpaper blurred behind it, a faint top sheen and a light edge. */
+html.has-wallpaper header, html.has-wallpaper nav, html.has-wallpaper .context, html.has-wallpaper footer,
+html.has-wallpaper #chatView, html.has-wallpaper #scriptsView, html.has-wallpaper .composer, html.has-wallpaper .suggestions button, html.has-wallpaper .message.user,
+html.has-wallpaper .tool, html.has-wallpaper .confirm-card, html.has-wallpaper .conv-tab,
+html.has-wallpaper .conv-new, html.has-wallpaper .effort-pill, html.has-wallpaper .approval-switch select,
+html.has-wallpaper .accent-presets button, html.has-wallpaper .secondary, html.has-wallpaper select {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .03), rgba(255, 255, 255, 0) 60%), var(--glass) !important;
+  -webkit-backdrop-filter: blur(var(--wp-blur, 16px)) saturate(160%);
+  backdrop-filter: blur(var(--wp-blur, 16px)) saturate(160%);
+  border-color: var(--glass-edge) !important;
+}
+html.has-wallpaper .composer, html.has-wallpaper .suggestions button, html.has-wallpaper .message.user,
+html.has-wallpaper .tool, html.has-wallpaper .confirm-card {
+  box-shadow: inset 0 1px 0 var(--glass-light), inset 0 -1px 0 rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .28) !important;
+}
+html.has-wallpaper header, html.has-wallpaper nav, html.has-wallpaper .context { border-bottom-color: var(--glass-edge) !important; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .04); }
+html.has-wallpaper footer { border-top-color: var(--glass-edge) !important; }
+html.has-wallpaper .composer:focus-within { border-color: rgba(var(--accent-rgb), .7) !important; box-shadow: inset 0 1px 0 var(--glass-light), 0 0 0 1px rgba(var(--accent-rgb), .25), 0 12px 34px rgba(0, 0, 0, .32) !important; }
+html.has-wallpaper .conv-tab.active { background: linear-gradient(180deg, rgba(255, 255, 255, .03), rgba(255, 255, 255, 0) 60%), rgba(var(--accent-rgb), .16), var(--glass) !important; border-color: rgba(var(--accent-rgb), .6) !important; }
+html.has-wallpaper .accent-presets button[aria-pressed="true"] { border-color: var(--accent) !important; }
+
+/* Places with lots of text get a stronger tint. */
+html.has-wallpaper .settings, html.has-wallpaper .effort-pop, html.has-wallpaper .ef-models,
+html.has-wallpaper .message pre, html.has-wallpaper #scriptCode, html.has-wallpaper .settings input,
+html.has-wallpaper .md-table-wrap, html.has-wallpaper .md .md-code, html.has-wallpaper select option {
+  background: var(--glass-strong) !important;
+  -webkit-backdrop-filter: blur(calc(var(--wp-blur, 16px) + 6px)) saturate(150%);
+  backdrop-filter: blur(calc(var(--wp-blur, 16px) + 6px)) saturate(150%);
+  border-color: var(--glass-edge) !important;
+}
+html.has-wallpaper .effort-pop { box-shadow: inset 0 1px 0 var(--glass-light), 0 18px 50px rgba(0, 0, 0, .55); }
+html.has-wallpaper .md .md-table th { background: rgba(255, 255, 255, .05); }
+html.has-wallpaper ::-webkit-scrollbar-track { background: transparent; }
+html.has-wallpaper ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .18); }
+
+/* Settings controls for the wallpaper (shown with or without one). */
+.wallpaper-settings { margin-top: 22px; }
+.wallpaper-row { display: flex; align-items: center; gap: 12px; margin: 10px 0; }
+.wallpaper-preview { width: 96px; height: 60px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 10px; background-size: cover; background-position: center; }
+.wallpaper-preview.empty { background: repeating-linear-gradient(135deg, #121216 0 8px, #17171c 8px 16px); }
+.wallpaper-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.wallpaper-buttons .secondary { padding: 8px 12px; }
+.range-label { display: flex; justify-content: space-between; margin: 12px 0 6px; font-size: 12px; }
+#wallpaperBlur { width: 100%; accent-color: var(--accent-fill); }
+#wallpaperPalette { margin: 6px 0 12px; }

@@ -1,3 +1,11 @@
+# Version 1.0.6
+
+- **Wallpaper:** choose any image in Settings > Wallpaper to show behind the panel, with a liquid-glass look on the bars, message box, tabs and cards.
+- **Always readable:** Zenframe measures each image and darkens it exactly as much as needed, so text never sits on anything brighter than a mid-dark gray. Very bright images come out darker; dark images stay almost untouched.
+- **Palette from the image:** the accent color is picked from the wallpaper automatically, and up to five colors from it are offered to choose from. Turn off "Match the accent color to the wallpaper" to keep your own.
+- **Glass blur** slider, from clear (0 px) to heavy frost (60 px).
+- Without a wallpaper the panel looks exactly as before.
+
 # Version 1.0.5
 
 - **Formatted replies:** Zeni's answers show as real formatting: bold and italic text, headings, bullet and numbered lists, tables, quotes and code. Tables scroll sideways in narrow panels. Code blocks keep their **Open in script editor** button. Your own messages stay plain text.

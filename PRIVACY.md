@@ -22,3 +22,4 @@ How the provider handles this data is covered by your own agreement with that pr
 * **Claude Code sessions (Claude Code provider only):** stored by Claude Code itself, not by Zenframe.
 * **Install backups and your original Adobe debug settings:** in `%LOCALAPPDATA%\ZenframeAssistant`.
 
+**Wallpaper.** If you choose a wallpaper, a resized copy is saved only on this computer, in `%LOCALAPPDATA%\ZenframeAssistant\wallpaper.json`. It is never sent to an AI provider or anywhere else. **Remove** deletes it.

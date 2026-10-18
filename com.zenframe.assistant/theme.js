@@ -9,7 +9,7 @@
  function contrast(a,b){var x=luminance(a),y=luminance(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
  function apply(color,save){
   color=color.toLowerCase();if(!valid(color))return;
-  var readable=color;for(var i=1;i<=100&&contrast(readable,'#28282f')<4.5;i++)readable=mix(color,'#ffffff',i/100);
+  var base=window.ZenframeAccentBase||'#28282f',readable=color;for(var i=1;i<=100&&contrast(readable,base)<4.5;i++)readable=mix(color,'#ffffff',i/100);
   var onAccent=contrast(color,'#000000')>contrast(color,'#ffffff')?'#000000':'#ffffff';
   var hover=mix(color,onAccent==='#000000'?'#ffffff':'#000000',0.16);
   var style=document.documentElement.style;
@@ -31,4 +31,6 @@
  Array.prototype.forEach.call(document.querySelectorAll('[data-accent]'),function(b){b.onclick=function(){apply(b.dataset.accent,true);};});
  document.getElementById('resetAccent').onclick=function(){apply(defaultColor,true);};
  var saved;try{saved=localStorage.getItem(key);}catch(e){}apply(valid(saved)?saved:defaultColor,false);
+ // Used by the wallpaper: set the accent, or recompute it when the background behind text changes.
+ window.ZenframeAccent={set:function(c){apply(c,true);},refresh:function(){apply(picker.value,false);}};
 }());
