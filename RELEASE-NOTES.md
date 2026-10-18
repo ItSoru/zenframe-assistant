@@ -1,3 +1,18 @@
+# Version 1.1.0
+
+- Zeni is about a third larger and drawn from higher-resolution sprites, so he stays sharp while sitting and while you drag him.
+- Drop Zeni anywhere and he stays there, thought bubble and all. Double-click him to send him back to his seat on the message box. On the left half of the panel his thought bubble opens to his right.
+- Settings > Zeni > **Size** makes him smaller or bigger (60% to 160%). He keeps his spot when resized.
+- Swing physics: when you drag him, his feet trail behind the movement (inertia plus air drag) instead of pointing the way you move.
+- Added Zeni beside the composer using the eight supplied PNG poses, with a common crop and shared seat anchor. Original character art is retained; only transparent trimming, downscaling and the optional accent recolor are applied.
+- Moods follow replies, tools, approvals, completion, Stop and errors. The accessible activity status now also appears in a compact thought bubble.
+- Click to wave; drag to pick up with a damped pendulum, release to fall, bounce once and hop back. Reduced-motion mode removes swing and decorative animation.
+- Accent recoloring runs locally from embedded PNG data, changes his hoodie, hair streak, eyes, headphones and shoes to your accent color while keeping skin, black hair, the outline and white areas as drawn, preserves source lightness, caches colors and falls back to originals.
+- Added a saved Show Zeni setting near Wallpaper, on by default. Turning it off restores the original layout and visible activity line.
+- Existing CSP, approval controls, runtime safeguards and installer layout remain in place. No Claude Code binary was changed or added.
+
+Validation details for this build are recorded in VALIDATION-1.1.0.md.
+
 # Version 1.0.9
 
 - **Zeni knows your installed tools.** Ask "what scripts do I have?" or "find me a shake preset": Zeni can list your extension panels (Window > Extensions), ScriptUI panels (Window menu), scripts and animation presets, and search them by name or folder.

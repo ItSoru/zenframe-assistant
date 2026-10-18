@@ -1,4 +1,4 @@
-/* Zenframe motion controller, v1.0.9. Written from scratch for this release.
+/* Zenframe motion controller, v1.1.0. Written from scratch for this release.
    Public API (used by app.js): window.ZenframeMotion.view(name), .settings(open). */
 (function () {
   'use strict';

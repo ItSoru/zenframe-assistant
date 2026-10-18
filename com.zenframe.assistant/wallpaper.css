@@ -1,4 +1,4 @@
-/* Zenframe Assistant 1.0.9: wallpaper with a liquid-glass look. Everything here applies only while a
+/* Zenframe Assistant 1.1.0: wallpaper with a liquid-glass look. Everything here applies only while a
    wallpaper is set (html.has-wallpaper); without one the panel looks exactly as before.
    Readability: wallpaper.js sets --wp-scrim so the brightest area of the image is darkened to at most
    the brightness of #616161, and every area with text is glass with a dark tint of about 50% on top,

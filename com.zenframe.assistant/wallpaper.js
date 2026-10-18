@@ -1,4 +1,4 @@
-/* Zenframe Assistant wallpaper and glass look, v1.0.9.
+/* Zenframe Assistant wallpaper and glass look, v1.1.0.
    - The image is resized and stored on this computer only.
    - Readability is guaranteed by measuring the image: a dark layer is laid over it that is exactly
      strong enough that its brightest area ends up no lighter than #616161, and every place with text

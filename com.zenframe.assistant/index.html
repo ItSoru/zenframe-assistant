@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="effort.css">
 <link rel="stylesheet" href="markdown.css">
 <link rel="stylesheet" href="wallpaper.css">
+<link rel="stylesheet" href="zeni.css">
 </head>
 <body>
 <div id="wallpaper" aria-hidden="true"></div>
@@ -179,6 +180,14 @@
     <p id="accentStatus" class="help" role="status"></p>
   </section>
 
+  <section class="zeni-settings" aria-labelledby="zeniTitle">
+    <h3 id="zeniTitle">Zeni</h3>
+    <label class="check zeni-setting"><input id="showZeni" type="checkbox" checked> Show Zeni on the message box</label>
+    <label for="zeniSize" class="range-label">Size <span id="zeniSizeValue">100%</span></label>
+    <input id="zeniSize" type="range" min="60" max="160" step="5" value="100">
+    <p class="help">Zeni sits on the message box and shows what the AI is doing in a thought bubble. Drag him anywhere; double-click him to send him home. Turn this off for the plain activity line.</p>
+  </section>
+
   <section class="wallpaper-settings" aria-labelledby="wallpaperTitle">
     <h3 id="wallpaperTitle">Wallpaper</h3>
     <p class="help">Show an image behind the panel with a glass look. It is darkened just enough that text always stays readable, and it stays on this computer.</p>
@@ -212,7 +221,7 @@
   </div>
   <button id="clearHistory" class="secondary">Delete all conversations</button>
   <p class="help">Deletes every conversation saved in this panel. To remove just one, close its tab.</p>
-  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.0.9</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
+  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.1.0</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
 </section>
 
 <footer><span><i></i> ZENFRAME</span><span>Unofficial · bring your own AI</span></footer>
@@ -221,6 +230,8 @@
 <script src="motion.js"></script>
 <script src="effort.js"></script>
 <script src="markdown.js"></script>
+<script src="zeni-sprites.js"></script>
+<script src="zeni.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

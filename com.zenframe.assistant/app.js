@@ -1,8 +1,8 @@
-/* Zenframe Assistant panel, v1.0.9. */
+/* Zenframe Assistant panel, v1.1.0. */
 (function () {
   'use strict';
 
-  var VERSION = '1.0.9';
+  var VERSION = '1.1.0';
   // Set this to your download page to show a "Check for updates" link in Settings.
   var UPDATE_URL = '';
   var MAX_CONVS = 20, MAX_MESSAGES = 80, PRIOR_MESSAGES = 16, MAX_SAVED_CHARS = 20000;
@@ -320,11 +320,13 @@
     showModeNote();
   }
   function finishCard(card, outcome, text) {
+    if (window.ZenframeZeni) window.ZenframeZeni.confirm(false);
     card.classList.add('resolved', outcome);
     card.querySelector('.confirm-outcome').textContent = text;
     if (openCard && openCard.card === card) openCard = null;
   }
   function confirmEdits(data, answer) {
+    if (window.ZenframeZeni) window.ZenframeZeni.confirm(true);
     var c = byId(runningId) || activeConv();
     var card = document.createElement('section'); card.className = 'confirm-card';
     var script = data.kind === 'script';
@@ -362,6 +364,7 @@
 
   /* ---------- Busy state and runtime events ---------- */
   function setBusy(v) {
+    if (window.ZenframeZeni) window.ZenframeZeni.setBusy(v);
     busy = v;
     $('send').hidden = v; $('stop').hidden = !v;
     ['mode', 'modelSelect', 'runScript', 'saveSettings', 'clearHistory', 'saveKey', 'removeKey', 'authMode', 'detectPaths', 'provider', 'loadModels'].forEach(function (id) { $(id).disabled = v; });
@@ -369,6 +372,7 @@
     $('activity').textContent = v ? 'Zeni is working…' : '';
   }
   function onEvent(e) {
+    if (window.ZenframeZeni) window.ZenframeZeni.onEvent(e);
     var c = byId(runningId) || activeConv();
     if (e.type === 'start') setBusy(true);
     if (e.type === 'text') {
@@ -567,7 +571,7 @@
     runningId = c.id;
     setBusy(true); refreshTabStates();
     try { await runtime.send(text, $('mode').value, settings, c.id, prior); }
-    catch (e) { message(c, 'error', e.message); runningId = null; setBusy(false); refreshTabStates(); }
+    catch (e) { if (window.ZenframeZeni) window.ZenframeZeni.onEvent({ type: 'error', data: e.message }); message(c, 'error', e.message); runningId = null; setBusy(false); refreshTabStates(); }
   }
 
   function init() {
@@ -638,7 +642,7 @@
   });
   $('send').onclick = send;
   $('prompt').onkeydown = function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } };
-  $('stop').onclick = function () { if (runtime) runtime.stop(); $('activity').textContent = 'Stopping…'; };
+  $('stop').onclick = function () { if (window.ZenframeZeni) window.ZenframeZeni.stop(); if (runtime) runtime.stop(); $('activity').textContent = 'Stopping…'; };
   $('mode').onchange = showModeNote;
   $('approval').onchange = function () { setApproval($('approval').value === 'ask'); };
   $('refreshContext').onclick = refresh;

@@ -1,4 +1,13 @@
-# Zenframe Assistant 1.0.9
+# Zenframe Assistant 1.1.0
+
+## Zeni companion (1.1.0)
+
+Zeni sits beside the message box and changes pose with the assistant's activity. Click him to wave, or drag him to pick him up and let go to drop him. He stays wherever you drop him; double-click him to send him back to his seat. His hoodie, hair streak, eyes, headphones and shoes follow your accent color. Settings → Zeni → **Size** sets how big he is. Settings → Zeni → **Show Zeni on the message box** turns the companion off and restores the prior layout; the preference stays on this computer. System reduced-motion preferences disable swing, breathing and decorative transitions.
+
+The thought bubble mirrors the activity status; long text is shortened visually, while the original status remains available to screen readers. The sprites adapt to the accent locally without sending images or settings anywhere. Hair, face, skin, outlines and white shoe sections remain unchanged. The eight PNG poses use a common seat anchor so changing state keeps their seating position stable.
+
+This remains an unsigned Windows CEP ZIP. See VALIDATION-1.1.0.md for the checks actually performed on this release.
+
 
 Chat with **Zeni** inside After Effects. Use **Edit project** for supported changes (you approve each batch before it runs) or **Draft scripts** to review JSX before running it.
 
