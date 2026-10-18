@@ -1,5 +1,5 @@
 'use strict';
-// Zenframe Assistant runtime, v1.0.7.
+// Zenframe Assistant runtime, v1.0.8.
 // Two ways to reach an AI:
 //  1. "Claude Code": runs the user's own, unmodified Claude Code and exposes the After Effects
 //     tools to it over a local, token-protected bridge (127.0.0.1 only) via mcp.cjs.

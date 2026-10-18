@@ -1,4 +1,4 @@
-# Zenframe Assistant 1.0.7
+# Zenframe Assistant 1.0.8
 
 Chat with **Zeni** inside After Effects. Use **Edit project** for supported changes (you approve each batch before it runs) or **Draft scripts** to review JSX before running it.
 

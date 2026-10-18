@@ -1,5 +1,18 @@
-/* Zenframe Assistant host bridge, v1.0.7. ES3 for After Effects ExtendScript. */
+/* Zenframe Assistant host bridge, v1.0.8. ES3 for After Effects ExtendScript. */
 var ZenframeAssistant = (function () {
+
+  var effectCache = null;
+  function installedEffects() {
+    if (effectCache) return effectCache;
+    var all = app.effects, n = all.length, out = [], k, e, mn, nm, cat;
+    for (k = 0; k < n; k++) {
+      e = all[k]; mn = String(e.matchName); nm = String(e.displayName); cat = String(e.category);
+      out.push({ name: nm, matchName: mn, category: cat, search: (nm + ' ' + mn + ' ' + cat).toLowerCase(),
+        thirdParty: !/^(ADBE|ADOBE|AE\.ADBE|CC |APC |CS |ISL |VISINF|Mettle |CINEMA 4D|Cryptomatte)/i.test(mn) });
+    }
+    effectCache = out;
+    return out;
+  }
 
   /* ---------- JSON (ExtendScript has no reliable JSON global) ---------- */
   function quote(s) {
@@ -319,18 +332,20 @@ var ZenframeAssistant = (function () {
       var l = layer(a.ref);
       return inspect(a.path && a.path.length ? prop(l, a.path) : l, Math.min(3, Math.max(1, a.depth || 2)), { n: 0 });
     }
+    // After Effects rebuilds the whole effects list every time app.effects is read, so it is read
+    // exactly once per session and kept. (Reading it inside a loop froze After Effects with many plugins.)
     // Installed effects, each listed once, in pages. After Effects reports some effects more than once.
     if (name === 'ae_search_effects') {
       var all = [], seen = {}, q = String(a.query || '').toLowerCase().replace(/^\s+|\s+$/g, '');
       var thirdOnly = a.thirdPartyOnly === true, offset = Math.max(0, Math.floor(Number(a.offset) || 0)), PAGE = 100;
-      for (i = 0; i < app.effects.length; i++) {
-        var e = app.effects[i], mn = String(e.matchName);
-        if (seen.hasOwnProperty(mn)) continue;
-        seen[mn] = true;
-        if (q && (e.displayName + ' ' + mn + ' ' + e.category).toLowerCase().indexOf(q) < 0) continue;
-        var builtIn = /^(ADBE|ADOBE|AE\.ADBE|CC |APC |CS |ISL |VISINF|Mettle |CINEMA 4D|Cryptomatte)/i.test(mn);
-        if (thirdOnly && builtIn) continue;
-        all.push({ name: e.displayName, matchName: mn, category: e.category, thirdParty: !builtIn });
+      var list = installedEffects();
+      for (i = 0; i < list.length; i++) {
+        var e = list[i];
+        if (seen.hasOwnProperty(e.matchName)) continue;
+        seen[e.matchName] = true;
+        if (q && e.search.indexOf(q) < 0) continue;
+        if (thirdOnly && !e.thirdParty) continue;
+        all.push({ name: e.name, matchName: e.matchName, category: e.category, thirdParty: e.thirdParty });
       }
       var page = all.slice(offset, offset + PAGE), out = { total: all.length, offset: offset, effects: page };
       if (offset + PAGE < all.length) out.nextOffset = offset + PAGE;

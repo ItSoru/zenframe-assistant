@@ -1,3 +1,7 @@
+# Version 1.0.8
+
+- **Fixed: After Effects froze when Zeni searched your effects.** After Effects rebuilds its whole effects list each time it is read, and Zenframe read it for every effect. It now reads the list once per session, so searching is quick even with thousands of plugins.
+
 # Version 1.0.7
 
 - **Wallpaper visibility** slider: show more of your wallpaper. At 0 (Most readable) the image is darkened exactly enough to guarantee readable text; higher values show more of the image and give text a dark outline instead.

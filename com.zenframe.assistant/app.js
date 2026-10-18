@@ -1,8 +1,8 @@
-/* Zenframe Assistant panel, v1.0.7. */
+/* Zenframe Assistant panel, v1.0.8. */
 (function () {
   'use strict';
 
-  var VERSION = '1.0.7';
+  var VERSION = '1.0.8';
   // Set this to your download page to show a "Check for updates" link in Settings.
   var UPDATE_URL = '';
   var MAX_CONVS = 20, MAX_MESSAGES = 80, PRIOR_MESSAGES = 16, MAX_SAVED_CHARS = 20000;
