@@ -1,3 +1,9 @@
+# Version 1.5.0
+
+- **Headphone effects on the beat hits.** While Zeni dances, every hit in the music (kicks, snares, big accents) sends light out of his headphones, in your accent color with a glow and twinkling stars. Quiet parts stay quiet: it follows the actual hits in the song, not a steady beat. Stronger hits send more.
+- Choose the look in Settings > Zeni > Headphone effects: Sound waves, Rings, Sparkle burst, Equalizer bars or Off, plus an Effect strength slider. Works in both the head bob and the chill sway, and turns off with reduced motion.
+- Songs Zeni analyzed before are analyzed once more in the background so they get their hits.
+
 # Version 1.4.4
 
 - **Music layers are ticked for you.** In Settings > Zeni > Music to dance to, the layers Zeni picked automatically are now ticked, so you can see what he follows. Untick or tick a layer to choose yourself; Back to automatic undoes that.

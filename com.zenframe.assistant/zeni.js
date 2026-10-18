@@ -48,6 +48,7 @@
   // Dance poses are drawn on their own layer: a solid base pose, the next pose dissolving in, and two soft smear ghosts.
   var dance = document.createElement('span'); dance.className = 'zeni-dance';
   var danceImgs = ['base', 'top', 'ghost1', 'ghost2'].map(function (n) { var i = document.createElement('img'); i.alt = ''; i.draggable = false; i.className = 'zeni-dance-' + n; i.setAttribute('aria-hidden', 'true'); dance.appendChild(i); return i; });
+  var fxApi = window.ZenframeZeniFx; if (fxApi) fxApi.attach(dance);
   breathe.appendChild(art); breathe.appendChild(dance); button.appendChild(breathe); button.appendChild(hit); layer.appendChild(button);
   var glow = document.createElement('div'); glow.className = 'zeni-perch-glow'; layer.insertBefore(glow, button);
   var bubble = document.createElement('div'); bubble.id = 'zeni-bubble'; bubble.hidden = true; bubble.setAttribute('aria-hidden', 'true');
@@ -442,6 +443,24 @@
     if (bounceInput) bounceInput.value = bounceAmt; if (bounceValue) bounceValue.textContent = bounceAmt + '%';
   }
   syncVibeInputs();
+  // 1.5.0: headphone effects on the hits of the music.
+  var fxKey = 'zenframeAssistant.zeniFx', fxAmtKey = 'zenframeAssistant.zeniFxAmt', FX_STYLES = ['waves', 'rings', 'burst', 'eq', 'off'];
+  var fxInput = document.getElementById('zeniFx'), fxAmtInput = document.getElementById('zeniFxAmt'), fxAmtValue = document.getElementById('zeniFxAmtValue');
+  var fxStyle = 'waves', fxAmt = 65, fxLast = 0;
+  try { var fs0 = localStorage.getItem(fxKey); if (FX_STYLES.indexOf(fs0) >= 0) fxStyle = fs0; fxAmt = num(localStorage.getItem(fxAmtKey), 65); } catch (ignore) {}
+  function syncFxInputs() {
+    if (fxInput) fxInput.value = fxStyle;
+    if (fxAmtInput) { fxAmtInput.value = fxAmt; fxAmtInput.disabled = fxStyle === 'off'; }
+    if (fxAmtValue) fxAmtValue.textContent = fxAmt + '%';
+  }
+  syncFxInputs();
+  // cups: where his headphones are in the dance frame shown (null = not dancing); hits: music hits just passed.
+  function fxFrame(cups, hits) {
+    if (!fxApi) return;
+    var t = now(), dt = fxLast ? Math.min(0.1, (t - fxLast) / 1000) : 0.016; fxLast = t;
+    fxApi.size(w, h);
+    fxApi.update(dt, cups, fxStyle === 'off' || !fxAmt ? null : hits, { style: fxStyle, strength: fxAmt / 100 });
+  }
   function eio(v) { return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, v))); }
   function src(name) { return currentSources[name] || pack.poses[name]; }
   function setImg(i, name, opacity, transform, blur) {
@@ -459,6 +478,7 @@
     vibing = ''; button.classList.remove('zeni-vibing', 'zeni-dancing');
     breathe.style.transform = '';
     for (var i = 0; i < 4; i++) setImg(i, '', 0);
+    if (fxApi) fxApi.clear(); fxLast = 0;
   }
   function vibeLoop() {
     vibeFrame = 0;
@@ -470,7 +490,7 @@
     if (!st) stopVibe();
     else {
       var unit = h / 110, bnc = bounceAmt / 100 * (0.5 + 0.5 * st.energy), sm = smearAmt / 100, b = st.beat;
-      var dancing = canDance();
+      var dancing = canDance(), cups = null;
       button.classList.add('zeni-vibing'); button.classList.toggle('zeni-dancing', dancing);
       vibing = dancing ? 'dance' : 'bounce';
       if (st.mode === 'chill') {
@@ -480,6 +500,7 @@
         breathe.style.transform = 'translateY(' + bob.toFixed(2) + 'px) rotate(' + (dancing ? rot : rot * 0.4).toFixed(4) + 'rad)';
         if (dancing) {
           var seq = pack.vibe.chill, side = sway >= 0 ? seq[1] : seq[3], amt = eio((Math.abs(sway) - 0.35) / 0.3);
+          cups = fxApi && fxApi.cupsFor(seq[0], side, amt);
           if (amt < 0.5) { setImg(0, seq[0], 1); setImg(1, side, amt * 2); }
           else { setImg(0, side, 1); setImg(1, seq[0], (1 - amt) * 2); }
           setImg(2, '', 0); setImg(3, '', 0);
@@ -492,6 +513,7 @@
         breathe.style.transform = 'translateY(' + dip.toFixed(2) + 'px) rotate(' + (dancing ? tilt : 0).toFixed(4) + 'rad) scale(' + sx.toFixed(4) + ',' + sq.toFixed(4) + ')';
         if (dancing) {
           var up = pack.vibe.up, down = pack.vibe.down, mix = eio((wv - 0.42) / 0.16);
+          cups = fxApi && fxApi.cupsFor(up, down, mix);
           if (mix < 0.5) { setImg(0, up, 1); setImg(1, down, mix * 2); } else { setImg(0, down, 1); setImg(1, up, (1 - mix) * 2); }
           // Smear: soft, stretched ghosts only during the fastest part of the head drop.
           var speed = Math.sin(Math.PI * (first ? p / 0.18 : (p - 0.18) / 0.82)) * (first ? 1 / 0.18 : 1 / 0.82);
@@ -503,6 +525,7 @@
         }
       }
       if (!dancing) for (var i = 0; i < 4; i++) setImg(i, '', 0);
+      fxFrame(cups, st.hits);
     }
     vibeFrame = requestAnimationFrame(vibeLoop);
   }
@@ -511,6 +534,8 @@
   setInterval(function () { if (enabled && danceOn && visible) startVibe(); else if (window.ZenframeVibe) window.ZenframeVibe.setEnabled(false); }, 500);
   if (danceInput) danceInput.addEventListener('change', function () { danceOn = danceInput.checked; try { localStorage.setItem(danceKey, String(danceOn)); } catch (ignore) {} if (!danceOn) stopVibe(); startVibe(); });
   if (smearInput) smearInput.addEventListener('input', function () { smearAmt = num(smearInput.value, 60); try { localStorage.setItem(smearKey, String(smearAmt)); } catch (ignore) {} syncVibeInputs(); });
+  if (fxInput) fxInput.addEventListener('change', function () { fxStyle = FX_STYLES.indexOf(fxInput.value) >= 0 ? fxInput.value : 'waves'; try { localStorage.setItem(fxKey, fxStyle); } catch (ignore) {} syncFxInputs(); });
+  if (fxAmtInput) fxAmtInput.addEventListener('input', function () { fxAmt = num(fxAmtInput.value, 65); try { localStorage.setItem(fxAmtKey, String(fxAmt)); } catch (ignore) {} syncFxInputs(); });
   if (bounceInput) bounceInput.addEventListener('input', function () { bounceAmt = num(bounceInput.value, 55); try { localStorage.setItem(bounceKey, String(bounceAmt)); } catch (ignore) {} syncVibeInputs(); });
 
   window.ZenframeZeni={onEvent:event,setBusy:setBusy,confirm:confirm,stop:stop};

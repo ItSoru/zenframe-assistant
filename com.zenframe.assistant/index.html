@@ -227,13 +227,23 @@
     <input id="zeniSmear" type="range" min="0" max="100" step="5" value="60">
     <label for="zeniBounce" class="range-label">Bounce <span id="zeniBounceValue">55%</span></label>
     <input id="zeniBounce" type="range" min="0" max="100" step="5" value="55">
+    <label for="zeniFx" class="range-label">Headphone effects</label>
+    <select id="zeniFx" class="field">
+      <option value="waves">Sound waves</option>
+      <option value="rings">Rings</option>
+      <option value="burst">Sparkle burst</option>
+      <option value="eq">Equalizer bars</option>
+      <option value="off">Off</option>
+    </select>
+    <label for="zeniFxAmt" class="range-label">Effect strength <span id="zeniFxAmtValue">65%</span></label>
+    <input id="zeniFxAmt" type="range" min="0" max="100" step="5" value="65">
     <p class="help" id="zeniMusicStatus" aria-live="polite"></p>
     <fieldset class="music-pick" id="musicPick">
       <legend>Music to dance to <button type="button" id="musicPickRefresh" class="link-btn">Refresh</button></legend>
       <p class="help" id="musicPickHint">Open a comp to see its sound layers.</p>
       <div id="musicPickList" role="group" aria-label="Sound layers in the active comp"></div>
     </fieldset>
-    <p class="help">When you play a comp with music, Zeni vibes to the beat: a chill sway for slow songs (under 105 BPM), head bobbing for faster ones. The tempo is worked out on this computer from the song file, including time stretch. While he is busy he keeps his working pose and just bounces.</p>
+    <p class="help">When you play a comp with music, Zeni vibes to the beat: a chill sway for slow songs (under 105 BPM), head bobbing for faster ones. The tempo is worked out on this computer from the song file, including time stretch. While he is busy he keeps his working pose and just bounces. On every hit in the music (kicks, snares, big accents) light comes out of his headphones in the accent color.</p>
   </section>
 
   <section class="voice-settings" aria-labelledby="voiceTitle">
@@ -278,7 +288,7 @@
   </div>
   <button id="clearHistory" class="secondary">Delete all conversations</button>
   <p class="help">Deletes every conversation saved in this panel. To remove just one, close its tab.</p>
-  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.4.4</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
+  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.5.0</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
 </section>
 
 <footer><span><i></i> ZENFRAME</span><span>Unofficial · bring your own AI</span></footer>
@@ -292,6 +302,7 @@
 <script src="listen.js"></script>
 <script src="frames.js"></script>
 <script src="zeni-sprites.js"></script>
+<script src="zenifx.js"></script>
 <script src="zeni.js"></script>
 <script src="attach.js"></script>
 <script src="voice.js"></script>
