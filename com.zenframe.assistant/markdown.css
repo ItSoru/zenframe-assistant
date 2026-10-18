@@ -1,4 +1,4 @@
-/* Zenframe 1.0.8: formatted replies (see markdown.js). */
+/* Zenframe 1.0.9: formatted replies (see markdown.js). */
 .message .body.md { white-space: normal; }
 .md > :first-child { margin-top: 0; }
 .md > :last-child { margin-bottom: 0; }

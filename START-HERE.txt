@@ -1,4 +1,4 @@
-ZENFRAME ASSISTANT 1.0.8 - WINDOWS ONLY
+ZENFRAME ASSISTANT 1.0.9 - WINDOWS ONLY
 Your After Effects assistant is Zeni. Bring your own AI.
 
 Zenframe is an independent product. It is not made, endorsed or supported

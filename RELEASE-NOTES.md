@@ -1,3 +1,13 @@
+# Version 1.0.9
+
+- **Zeni knows your installed tools.** Ask "what scripts do I have?" or "find me a shake preset": Zeni can list your extension panels (Window > Extensions), ScriptUI panels (Window menu), scripts and animation presets, and search them by name or folder.
+- **Opens panels for you.** "Open Flow" or "open Duik" opens that panel. Zeni can't see or click inside other panels, so it tells you what to do there.
+- **Runs your installed scripts, always with your OK.** Every run shows a card with **Run** and **Decline**, even when Auto-apply is on. A script runs as one Undo step, but scripts can do things Undo can't reverse.
+- **Applies your presets (.ffx)** to layers, through the normal edit approval card.
+- The Stop button's square is centered and rounded.
+- Settings > AI provider notes that Zenframe is tested with, and works best with, Claude Code.
+- Only tools found in After Effects' own Scripts and Presets folders, your user Scripts folder, Documents\Adobe\After Effects <year>\User Presets and the Adobe extensions folders can be used. Startup and shutdown scripts are never run.
+
 # Version 1.0.8
 
 - **Fixed: After Effects froze when Zeni searched your effects.** After Effects rebuilds its whole effects list each time it is read, and Zenframe read it for every effect. It now reads the list once per session, so searching is quick even with thousands of plugins.

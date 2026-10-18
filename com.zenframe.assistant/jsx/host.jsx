@@ -1,4 +1,4 @@
-/* Zenframe Assistant host bridge, v1.0.8. ES3 for After Effects ExtendScript. */
+/* Zenframe Assistant host bridge, v1.0.9. ES3 for After Effects ExtendScript. */
 var ZenframeAssistant = (function () {
 
   var effectCache = null;
@@ -183,6 +183,13 @@ var ZenframeAssistant = (function () {
     if ((t === PropertyValueType.ThreeD || t === PropertyValueType.ThreeD_SPATIAL) && !numbers(v, [2, 3])) fail('"' + p.name + '" needs [x, y] or [x, y, z].');
     if (t === PropertyValueType.COLOR && !numbers(v, [3, 4])) fail('"' + p.name + '" needs an RGB or RGBA color from 0 to 1.');
   }
+  function installedFile(p, re, what) {
+    str(p, what + ' path');
+    var f = new File(p);
+    if (!re.test(f.fsName) || !f.exists) fail(what + ' not found: ' + p);
+    return f;
+  }
+  function fileTitle(f) { return decodeURI(f.name).replace(/\.(jsx|jsxbin|ffx)$/i, ''); }
   function show(v) {
     var s = v instanceof Array ? '[' + v.join(', ') + ']' : String(v);
     return s.length > 80 ? s.slice(0, 77) + '...' : s;
@@ -284,6 +291,11 @@ var ZenframeAssistant = (function () {
       job.op = finite(a.outPoint, 'out point', -10800, 10800);
       if (job.op <= job.ip) fail('Out point must follow in point.');
       job.summary = 'Set timing of ' + target + ' to ' + job.ip + 's - ' + job.op + 's';
+    } else if (a.type === 'apply_preset') {
+      // The panel only passes presets found in the Presets / User Presets folders.
+      job.file = installedFile(a.presetPath, /\.ffx$/i, 'Preset');
+      if (typeof job.layer.applyPreset !== 'function') fail('Presets cannot be applied to ' + target + '.');
+      job.summary = 'Apply preset "' + fileTitle(job.file) + '" to ' + target;
     } else fail('Unsupported action: ' + a.type);
     return job;
   }
@@ -310,6 +322,7 @@ var ZenframeAssistant = (function () {
     else if (a.type === 'add_effect') { p = job.prop.addProperty(a.matchName); return { effectName: p.name, matchName: p.matchName, index: p.propertyIndex }; }
     else if (a.type === 'set_property') { if (a.time !== undefined) job.prop.setValueAtTime(a.time, a.value); else job.prop.setValue(a.value); }
     else if (a.type === 'set_expression') { job.prop.expression = String(a.expression || ''); if (job.prop.expressionError) fail(job.prop.expressionError); }
+    else if (a.type === 'apply_preset') { l.applyPreset(job.file); }
     else if (a.type === 'set_timing') { l.outPoint = Math.max(l.outPoint, job.op, job.ip + 0.01); l.inPoint = job.ip; l.outPoint = job.op; }
     return layerInfo(l, l.containingComp);
   }
@@ -368,6 +381,34 @@ var ZenframeAssistant = (function () {
         return { applied: done };
       } catch (ex) {
         return { error: String(ex), completed: done, failedIndex: done.length, message: 'Earlier actions in this batch were applied. Use After Effects Undo to revert the whole batch.' };
+      } finally {
+        app.endUndoGroup();
+      }
+    }
+    // Panel-only: where After Effects keeps its scripts and presets (the panel lists them).
+    if (name === 'ae_tool_paths') {
+      var appFolder = null;
+      try { appFolder = Folder.appPackage.fsName; } catch (e1) {}
+      if (!appFolder) try { appFolder = Folder.startup.fsName; } catch (e2) {}
+      return { version: String(app.version), appFolder: appFolder, userData: Folder.userData.fsName, documents: Folder.myDocuments.fsName };
+    }
+    // Panel-only: open a ScriptUI panel the way the Window menu does.
+    if (name === 'open_script_panel') {
+      var pf = installedFile(a.path, /\.(jsx|jsxbin)$/i, 'Panel'), label = decodeURI(pf.name);
+      var cmd = app.findMenuCommandId(label) || app.findMenuCommandId(fileTitle(pf));
+      if (!cmd) fail('After Effects has not loaded "' + label + '" yet. Restart After Effects, then open it from the Window menu.');
+      app.executeCommand(cmd);
+      return { ok: true };
+    }
+    // Panel-only: runs an installed script after the user approved it on the card.
+    if (name === 'run_installed_script') {
+      var sf = installedFile(a.path, /\.(jsx|jsxbin)$/i, 'Script');
+      app.beginUndoGroup('Zenframe: ' + fileTitle(sf).slice(0, 60));
+      try {
+        $.evalFile(sf);
+        return { ok: true, result: 'Script "' + fileTitle(sf) + '" ran. If it opened its own window, the user continues there.' };
+      } catch (se) {
+        return { error: 'The script stopped with an error: ' + String(se.message || se), line: se.line || null, message: 'Some of its changes may already be applied. Edit > Undo reverts them.' };
       } finally {
         app.endUndoGroup();
       }

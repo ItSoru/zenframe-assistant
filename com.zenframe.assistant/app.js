@@ -1,8 +1,8 @@
-/* Zenframe Assistant panel, v1.0.8. */
+/* Zenframe Assistant panel, v1.0.9. */
 (function () {
   'use strict';
 
-  var VERSION = '1.0.8';
+  var VERSION = '1.0.9';
   // Set this to your download page to show a "Check for updates" link in Settings.
   var UPDATE_URL = '';
   var MAX_CONVS = 20, MAX_MESSAGES = 80, PRIOR_MESSAGES = 16, MAX_SAVED_CHARS = 20000;
@@ -39,7 +39,7 @@
         var finished = false;
         var timer = setTimeout(function () {
           if (!finished) { finished = true; reject(Error('After Effects has not responded. Close any open dialogs. A running script may still finish.')); }
-        }, 90000);
+        }, name === 'run_installed_script' ? 15 * 60000 : 90000); // installed scripts may open their own dialogs
         var payload = JSON.stringify(encodeURIComponent(JSON.stringify(args))).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
         var code = 'ZenframeAssistant.invoke(' + JSON.stringify(name) + ',' + payload + ')';
         nativeCEP.evalScript(code, function (result) {
@@ -327,24 +327,27 @@
   function confirmEdits(data, answer) {
     var c = byId(runningId) || activeConv();
     var card = document.createElement('section'); card.className = 'confirm-card';
-    card.setAttribute('aria-label', 'Approve project edits');
+    var script = data.kind === 'script';
+    card.setAttribute('aria-label', script ? 'Approve running a script' : 'Approve project edits');
     var title = document.createElement('div'); title.className = 'confirm-title';
     title.textContent = 'ZENI WANTS TO: ' + data.label.toUpperCase();
     var list = document.createElement('ol');
     data.summary.forEach(function (line) { var li = document.createElement('li'); li.textContent = line; list.appendChild(li); });
     var note = document.createElement('p'); note.className = 'confirm-note';
-    note.textContent = 'These changes were checked in After Effects. Applying them creates one Undo step.';
+    note.textContent = script
+      ? 'This is a script installed on your computer. It runs as one Undo step, but scripts can also do things Undo cannot reverse. Zeni asks every time.'
+      : 'These changes were checked in After Effects. Applying them creates one Undo step.';
     var actions = document.createElement('div'); actions.className = 'confirm-actions';
-    var apply = document.createElement('button'); apply.className = 'primary apply'; apply.textContent = 'Apply';
+    var apply = document.createElement('button'); apply.className = 'primary apply'; apply.textContent = script ? 'Run' : 'Apply';
     var always = document.createElement('button'); always.className = 'secondary always'; always.textContent = 'Always apply';
     always.title = 'Apply this and switch to auto-apply for future edits';
     var decline = document.createElement('button'); decline.className = 'secondary decline'; decline.textContent = 'Decline';
     var outcome = document.createElement('div'); outcome.className = 'confirm-outcome';
     var resolveCard = function () { c.attention = false; refreshTabStates(); };
-    apply.onclick = function () { finishCard(card, 'approved', 'Approved. Applying…'); applyingCard = card; resolveCard(); answer(true); };
+    apply.onclick = function () { finishCard(card, 'approved', script ? 'Approved. Running…' : 'Approved. Applying…'); applyingCard = card; resolveCard(); answer(true); };
     always.onclick = function () { setApproval(false); finishCard(card, 'approved', 'Approved. Auto-apply is now on.'); applyingCard = card; resolveCard(); answer(true); };
-    decline.onclick = function () { finishCard(card, 'declined', 'Declined. Nothing was changed.'); resolveCard(); answer(false); };
-    actions.appendChild(apply); actions.appendChild(always); actions.appendChild(decline);
+    decline.onclick = function () { finishCard(card, 'declined', script ? 'Declined. The script did not run.' : 'Declined. Nothing was changed.'); resolveCard(); answer(false); };
+    actions.appendChild(apply); if (!script) actions.appendChild(always); actions.appendChild(decline);
     [title, list, note, actions, outcome].forEach(function (el) { card.appendChild(el); });
     c.el.appendChild(card);
     openCard = { card: card };
@@ -374,7 +377,7 @@
       if (c.id === activeId) scroll();
     }
     if (e.type === 'tool') {
-      var labels = { ae_get_context: 'Read composition', ae_inspect_layer: 'Inspect layer properties', ae_search_effects: 'Find installed effects', ae_apply_actions: 'Edit project', ae_stage_script: 'Draft a script' };
+      var labels = { ae_get_context: 'Read composition', ae_inspect_layer: 'Inspect layer properties', ae_search_effects: 'Find installed effects', ae_apply_actions: 'Edit project', ae_stage_script: 'Draft a script', ae_list_tools: 'Look through your installed tools', ae_open_panel: 'Open a panel', ae_run_script: 'Run your script' };
       if (e.data.status === 'running') {
         c.activeTool = document.createElement('details'); c.activeTool.className = 'tool';
         var summary = document.createElement('summary'); summary.textContent = labels[e.data.name] || e.data.name;
@@ -385,8 +388,8 @@
         var p = document.createElement('p'); p.textContent = e.data.detail; c.activeTool.appendChild(p);
         c.activeTool = null;
       }
-      if (applyingCard && e.data.name === 'ae_apply_actions' && e.data.status !== 'running') {
-        applyingCard.querySelector('.confirm-outcome').textContent = e.data.status === 'done' ? 'Applied. Use Undo in After Effects to revert.' : 'Could not finish: ' + e.data.detail;
+      if (applyingCard && (e.data.name === 'ae_apply_actions' || e.data.name === 'ae_run_script') && e.data.status !== 'running') {
+        applyingCard.querySelector('.confirm-outcome').textContent = e.data.status === 'done' ? (e.data.name === 'ae_run_script' ? 'Ran. Use Undo in After Effects to revert.' : 'Applied. Use Undo in After Effects to revert.') : 'Could not finish: ' + e.data.detail;
         applyingCard = null;
       }
       if (c.id === activeId) { $('welcome').hidden = true; scroll(); }
@@ -592,7 +595,7 @@
         var found = backend.findExecutables();
         settings.claudePath = settings.claudePath || found.claudePath;
         settings.nodePath = settings.nodePath || found.nodePath;
-        runtime = new backend.Runtime({ callHost: host, onEvent: onEvent, onScript: stage, onConfirm: confirmEdits });
+        runtime = new backend.Runtime({ callHost: host, onEvent: onEvent, onScript: stage, onConfirm: confirmEdits, openExtension: function (id) { nativeCEP.requestOpenExtension(id, ''); } });
         $('detectPaths').onclick = function () {
           var again = backend.findExecutables();
           $('claudePath').value = again.claudePath || $('claudePath').value;

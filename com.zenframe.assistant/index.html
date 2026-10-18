@@ -60,7 +60,7 @@
           <select id="mode"><option value="edit">Edit project</option><option value="script">Draft scripts</option></select>
           <button id="effortPill" type="button" class="effort-pill" aria-label="Effort and model"></button>
           <button id="send" class="send" aria-label="Send message" title="Send message">↑</button>
-          <button id="stop" class="send" aria-label="Stop reply" title="Stop reply" hidden>■</button>
+          <button id="stop" class="send" aria-label="Stop reply" title="Stop reply" hidden><span class="stop-square" aria-hidden="true"></span></button>
         </div>
       </div>
       <div class="composer-note">
@@ -92,6 +92,7 @@
 
   <h3 class="connection-heading">AI provider</h3>
   <p class="help">Bring your own AI. Zenframe has no servers: requests go straight from your computer to the provider you choose, under your own account and its pricing or free tier.</p>
+  <p class="best-with"><span class="best-check" aria-hidden="true">✓</span>Tested and works best with <strong>Claude Code</strong>.</p>
 
   <label for="provider">Provider</label>
   <select id="provider" class="field">
@@ -211,7 +212,7 @@
   </div>
   <button id="clearHistory" class="secondary">Delete all conversations</button>
   <p class="help">Deletes every conversation saved in this panel. To remove just one, close its tab.</p>
-  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.0.8</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
+  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.0.9</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
 </section>
 
 <footer><span><i></i> ZENFRAME</span><span>Unofficial · bring your own AI</span></footer>

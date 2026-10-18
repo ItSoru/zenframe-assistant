@@ -8,7 +8,7 @@ const definitions = require('./tools.cjs');
 const port = Number(process.env.ZENFRAME_PORT);
 const token = process.env.ZENFRAME_TOKEN;
 // Edits may wait for the user to click Apply, so they get a longer limit.
-const TIMEOUTS = { ae_apply_actions: 15 * 60 * 1000 };
+const TIMEOUTS = { ae_apply_actions: 15 * 60 * 1000, ae_run_script: 15 * 60 * 1000 };
 const DEFAULT_TIMEOUT = 2 * 60 * 1000;
 
 function send(obj) { process.stdout.write(JSON.stringify(obj) + '\n'); }
@@ -30,8 +30,8 @@ function call(name, args) {
       });
     });
     const limit = TIMEOUTS[name] || DEFAULT_TIMEOUT;
-    req.setTimeout(limit, () => req.destroy(new Error(name === 'ae_apply_actions'
-      ? 'No answer from the user or After Effects in time. Nothing new was applied by this call.'
+    req.setTimeout(limit, () => req.destroy(new Error(TIMEOUTS[name]
+      ? 'No answer from the user or After Effects in time. Check After Effects before trying again.'
       : 'After Effects did not respond in time.')));
     req.on('error', reject);
     req.end(body);
@@ -45,7 +45,7 @@ readline.createInterface({ input: process.stdin, crlfDelay: Infinity }).on('line
   try {
     let result;
     if (r.method === 'initialize') {
-      result = { protocolVersion: r.params.protocolVersion, capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'zenframe-aftereffects', version: '1.0.8' } };
+      result = { protocolVersion: r.params.protocolVersion, capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'zenframe-aftereffects', version: '1.0.9' } };
     } else if (r.method === 'ping') {
       result = {};
     } else if (r.method === 'tools/list') {

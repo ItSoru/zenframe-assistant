@@ -9,4 +9,4 @@ Adobe or by any AI provider. All product names are trademarks of their
 owners and are named here only to describe compatibility.
 
 The panel's motion system (motion.css, motion.js) was written from scratch
-for version 1.0.8. This package bundles no third-party libraries.
+for version 1.0.9. This package bundles no third-party libraries.
