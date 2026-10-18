@@ -1,5 +1,5 @@
 'use strict';
-// Zenframe Assistant 1.2.0: finds what the user has installed for After Effects, so Zeni can list it,
+// Zenframe Assistant 1.2.0+: finds what the user has installed for After Effects, so Zeni can list it,
 // open panels, run scripts (always after approval) and apply presets. Only reads folders; never changes them.
 //  - CEP panels: manifests in the per-user and all-users CEP extension folders (After Effects only).
 //  - ScriptUI panels and scripts: After Effects' own Scripts folder and the per-user Scripts folder.

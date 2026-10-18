@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src blob:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Zenframe Assistant</title>
 <link rel="stylesheet" href="style.css">
@@ -62,7 +62,8 @@
         <textarea id="prompt" rows="3" placeholder="Ask Zeni. What are we making?" spellcheck="true"></textarea>
         <div class="compose-controls">
           <button id="attachButton" type="button" class="attach-btn" aria-label="Attach files" title="Attach images or text files (or drop / paste them here)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.4 3.4 0 0 1 4.8 4.8l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/></svg></button>
-          <input id="attachInput" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,image/gif,.txt,.md,.jsx,.jsxinc,.js,.ts,.json,.csv,.tsv,.xml,.html,.css,.srt,.vtt,.ass,.ssa,.lrc,.log,.yaml,.yml,.ini,.py,.expr">
+          <input id="attachInput" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,image/gif,video/mp4,video/quicktime,video/webm,.mp4,.m4v,.mov,.webm,.mkv,.txt,.md,.jsx,.jsxinc,.js,.ts,.json,.csv,.tsv,.xml,.html,.css,.srt,.vtt,.ass,.ssa,.lrc,.log,.yaml,.yml,.ini,.py,.expr">
+          <button id="micButton" type="button" class="mic-btn" aria-label="Voice input: click and talk" title="Voice input: click and talk"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg></button>
           <label class="sr-only" for="mode">Working mode</label>
           <select id="mode"><option value="edit">Edit project</option><option value="script">Draft scripts</option></select>
           <button id="effortPill" type="button" class="effort-pill" aria-label="Effort and model"></button>
@@ -203,7 +204,23 @@
     <label class="check zeni-setting"><input id="showZeni" type="checkbox" checked> Show Zeni on the message box</label>
     <label for="zeniSize" class="range-label">Size <span id="zeniSizeValue">100%</span></label>
     <input id="zeniSize" type="range" min="60" max="160" step="5" value="100">
-    <p class="help">Zeni sits on the message box and shows what the AI is doing in a thought bubble. Drag him anywhere; double-click him to send him home. Turn this off for the plain activity line.</p>
+    <p class="help">Zeni sits on the message box and shows what the AI is doing in a thought bubble. Drag him anywhere: drop him near the top of the tab bars, the Conversation/Scripts switch or the line under the Zenframe title and he sits on it. Double-click him to send him home. Turn this off for the plain activity line.</p>
+    <label class="check zeni-setting"><input id="zeniDance" type="checkbox" checked> Dance to music</label>
+    <label for="zeniSmear" class="range-label">Smear <span id="zeniSmearValue">60%</span></label>
+    <input id="zeniSmear" type="range" min="0" max="100" step="5" value="60">
+    <label for="zeniBounce" class="range-label">Bounce <span id="zeniBounceValue">55%</span></label>
+    <input id="zeniBounce" type="range" min="0" max="100" step="5" value="55">
+    <p class="help" id="zeniMusicStatus" aria-live="polite"></p>
+    <p class="help">When you play a comp with music, Zeni vibes to the beat: a chill sway for slow songs (under 105 BPM), head bobbing for faster ones. The tempo is worked out on this computer from the song file, including time stretch. While he is busy he keeps his working pose and just bounces.</p>
+  </section>
+
+  <section class="voice-settings" aria-labelledby="voiceTitle">
+    <h3 id="voiceTitle">Voice</h3>
+    <label for="voiceEngine">Speech to text</label>
+    <select id="voiceEngine"><option value="auto">Automatic</option><option value="groq">Groq Whisper (free key)</option><option value="openai">OpenAI Whisper (your key)</option><option value="windows">Windows (offline)</option></select>
+    <label for="voiceMic">Microphone</label>
+    <select id="voiceMic"><option value="">Windows default microphone</option></select>
+    <p id="voiceNote" class="help">Click the mic in the message box, talk, then click it again. Your words are typed into the box; nothing is sent until you press Send.</p>
   </section>
 
   <section class="wallpaper-settings" aria-labelledby="wallpaperTitle">
@@ -239,7 +256,7 @@
   </div>
   <button id="clearHistory" class="secondary">Delete all conversations</button>
   <p class="help">Deletes every conversation saved in this panel. To remove just one, close its tab.</p>
-  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.2.0</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
+  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.3.0</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
 </section>
 
 <footer><span><i></i> ZENFRAME</span><span>Unofficial · bring your own AI</span></footer>
@@ -248,9 +265,12 @@
 <script src="motion.js"></script>
 <script src="effort.js"></script>
 <script src="markdown.js"></script>
+<script src="tempo.js"></script>
+<script src="vibe.js"></script>
 <script src="zeni-sprites.js"></script>
 <script src="zeni.js"></script>
 <script src="attach.js"></script>
+<script src="voice.js"></script>
 <script src="usage.js"></script>
 <script src="app.js"></script>
 </body>

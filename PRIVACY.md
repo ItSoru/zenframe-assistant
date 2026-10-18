@@ -11,8 +11,13 @@ When you send Zeni a message, Zenframe sends it to **the AI provider you chose i
 * property values, expressions and the text of text layers,
 * the names of installed effects, panels, scripts and presets,
 * **files you attach to a message** (images and text files you pick, drop or paste). They are sent only with that message and are not saved by Zenframe; only their names are kept in the conversation.
+* **video references you attach:** Zenframe takes up to 12 still frames from the video on your computer and sends them as one image with their timestamps. The video file itself is not uploaded.
 
 Zeni does **not** upload your footage, audio or rendered frames on its own. Nothing is attached unless you attach it.
+
+**Voice input:** your recording is turned into text by the engine chosen in Settings > Voice: Groq or OpenAI (sent with your saved key to that company's speech-to-text service), or Windows speech recognition, which stays on your computer. Recordings are not saved.
+
+**Zeni dancing:** to find the beat, Zenframe reads the song file of your comp's music layer on your computer. To know when a comp is playing, it reads only After Effects' output level (how loud, not the sound itself) from Windows. The audio is never recorded or sent anywhere; only the tempo is remembered in panel storage.
 
 **Usage gauge:** for OpenRouter, Zenframe asks OpenRouter for your key's usage with the same key. Other providers' limits come from the replies they already send. Nothing is sent anywhere else.
 

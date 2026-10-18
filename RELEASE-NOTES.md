@@ -1,3 +1,11 @@
+# Version 1.3.0
+
+- **Zeni vibes to the music in your comp.** When a comp with a song plays, Zeni dances on the beat within a moment. The song's tempo and beat grid are worked out once, locally, from the audio file, including the layer's time stretch, and remembered. Under 105 BPM: a chill sway with his hands in his hoodie pockets. 105 to 160 BPM: head bob up and down. Over 160 BPM: head bob on every other beat. Smooth blending between poses and a soft smear on the head drop. While he is thinking, working, waiting for approval or showing an error he keeps that pose and only bounces. Settings > Zeni: **Dance to music** toggle, **Smear** and **Bounce** sliders. Nothing about the project changes and no audio leaves your computer.
+- **New sitting spots:** the top of the conversation tab bar, the line under "zenframe / assistant", and the top of the Conversation/Scripts toggle, plus the message box and the panel floor. The edges glow while you drag him. He snaps on, follows the layout and remembers his spot. Double-click still sends him home.
+- His hanging legs are click-through: clicks reach the tab or button under them.
+- **Voice input:** mic button in the message box. Click, talk, click again; the words are typed where your cursor is. Recording level and time show on the button; Esc cancels; 3 minute limit. Engines: Groq Whisper or OpenAI Whisper with your saved key, or Windows speech recognition (free, offline). Settings > Voice picks the engine and microphone.
+- **Video references:** attach a video file, or choose **Selected video layer** from the paperclip menu. Zenframe picks up to 12 key frames (first, last and the biggest changes) into one numbered contact sheet with timestamps. Works with every provider that reads images. Up to 12 files per message.
+
 # Version 1.2.0
 
 - **New provider: Codex** (second in the list). Runs Zeni on your ChatGPT plan through the Codex CLI on your PC, no API key needed, with the same After Effects tools, approval cards, effort levels and image attachments. Codex keeps its read-only sandbox, web search is off, and it uses your ChatGPT sign-in even if an OpenAI API key is set on the computer. If your Codex version blocks tools from other apps, Zeni says so instead of failing silently.

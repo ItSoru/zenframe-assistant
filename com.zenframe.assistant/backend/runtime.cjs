@@ -1,5 +1,5 @@
 'use strict';
-// Zenframe Assistant runtime, v1.2.0.
+// Zenframe Assistant runtime, v1.3.0.
 // Two ways to reach an AI:
 //  1. "Claude Code": runs the user's own, unmodified Claude Code and exposes the After Effects
 //     tools to it over a local, token-protected bridge (127.0.0.1 only) via mcp.cjs.
@@ -113,7 +113,7 @@ function withPrior(prior, prompt) {
 }
 
 /* ---------- Attachments ---------- */
-const MAX_FILES = 6, MAX_IMAGE_BYTES = 5 * 1024 * 1024, MAX_TEXT_CHARS = 300000, MAX_TEXT_TOTAL = 600000;
+const MAX_FILES = 12, MAX_IMAGE_BYTES = 5 * 1024 * 1024, MAX_TEXT_CHARS = 300000, MAX_TEXT_TOTAL = 600000;
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 // Checks what the panel sends: images as base64 (already resized by the panel) and text files as text.
 function prepareAttachments(list) {
@@ -319,6 +319,12 @@ class Runtime {
   saveKey(provider, key) { return this.keys.save(this.keyProvider(provider), key); }
   removeKey(provider) { this.keys.remove(this.keyProvider(provider)); }
   hasKey(provider) { return this.keys.has(this.keyProvider(provider)); }
+  // 1.3.0 voice input: text for the message box. Never sends anything to the chat by itself.
+  transcribe(wavBase64, settings) {
+    const voice = require('./voice.cjs');
+    return voice.transcribe(wavBase64, { engine: (settings && settings.voiceEngine) || 'auto', keys: this.keys, language: (settings && settings.voiceLanguage) || '' });
+  }
+  voiceEngines() { return { groq: this.keys.has('groq'), openai: this.keys.has('openai') }; }
 
   directConfig(settings) {
     const id = providerOf(settings);

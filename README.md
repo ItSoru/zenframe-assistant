@@ -1,4 +1,4 @@
-# Zenframe Assistant 1.2.0
+# Zenframe Assistant 1.3.0
 
 ## Zeni companion
 
@@ -6,9 +6,16 @@ Zeni sits beside the message box and changes pose with the assistant's activity.
 
 The thought bubble mirrors the activity status; long text is shortened visually, while the original status remains available to screen readers. The sprites adapt to the accent locally without sending images or settings anywhere. Skin, black hair, outlines and white shoe sections remain unchanged. The eight PNG poses use a common seat anchor so changing state keeps their seating position stable.
 
+## New in 1.3.0
+
+- **Zeni vibes to your music.** Press play on a comp with a song in it and Zeni dances on the beat almost right away. The tempo is worked out once from the song file (time stretch included) on your computer. Slow songs (under 105 BPM) get a chill sway, 105 to 160 BPM a head bob, faster songs bob every other beat. While Zeni is thinking or working he keeps that pose and just bounces. Settings > Zeni: **Dance to music**, **Smear** and **Bounce**.
+- **More places to sit.** Drag Zeni onto the conversation tabs, the line under the Zenframe title, the Conversation/Scripts toggle, the message box or the panel floor. He snaps on, follows the layout when the panel resizes, and remembers the spot. Clicks on his hanging legs go through to what is underneath.
+- **Voice input.** Click the mic next to the paperclip, talk, click again: your words are typed into the message box (nothing is sent until you press Send). Esc cancels. Uses Groq or OpenAI Whisper if you saved that key, otherwise Windows speech recognition offline. Settings > Voice picks the engine and microphone.
+- **Video references.** Attach a video (or pick **Selected video layer** from the paperclip menu) and Zeni gets a sheet of up to 12 key frames with their timestamps, so you can say "make it move like this".
+
 ## New in 1.2.0
 
-- **Attach files:** click the paperclip in the message box, drag files onto it, or paste an image. Files wait in the box until you press Send, and you can remove any of them with ×. Zeni reads images (PNG, JPG, WebP, GIF, such as a reference frame or a screenshot of your comp) and text files (scripts, expressions, JSON, CSV, subtitles, notes). Up to 6 files per message. Images need a model with vision; most Claude, GPT and Gemini models have it.
+- **Attach files:** click the paperclip in the message box, drag files onto it, or paste an image. Files wait in the box until you press Send, and you can remove any of them with ×. Zeni reads images (PNG, JPG, WebP, GIF, such as a reference frame or a screenshot of your comp) and text files (scripts, expressions, JSON, CSV, subtitles, notes). Up to 12 files per message (a video counts as two: its key-frame sheet and their timestamps). Images need a model with vision; most Claude, GPT and Gemini models have it.
 - **Usage gauge:** the small ring next to the connection status shows how much of your limit is left. Click it for details; the same card is in Settings under AI provider. What it shows depends on the provider (see below).
 
 This remains an unsigned Windows CEP ZIP.

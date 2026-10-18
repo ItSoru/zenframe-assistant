@@ -50,3 +50,16 @@ html.has-wallpaper #zeni-bubble { background: var(--glass-strong, rgba(10,10,14,
 @media (prefers-reduced-motion: reduce) {
   #zeni-layer *, #zeni-layer *::before, #zeni-layer *::after { animation: none !important; transition: none !important; }
 }
+/* 1.3.0: click-through legs, dancing and perches. */
+#zeni-button { pointer-events: none; }
+.zeni-hit { position: absolute; left: 0; top: 0; width: 100%; pointer-events: auto; cursor: grab; }
+#zeni-button.zeni-moving .zeni-hit { cursor: grabbing; }
+.zeni-dance { position: absolute; inset: 0; display: block; pointer-events: none; }
+.zeni-dance img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; opacity: 0; pointer-events: none; -webkit-user-drag: none; transform-origin: var(--zeni-seat-x) var(--zeni-seat-y); }
+#zeni-button.zeni-vibing .zeni-breathe { animation: none; }
+#zeni-button.zeni-dancing .zeni-art img { opacity: 0 !important; transition: none !important; }
+.zeni-perch-glow i { position: absolute; height: 2px; border-radius: 2px; background: var(--accent); box-shadow: 0 0 8px var(--accent); opacity: .55; pointer-events: none; animation: zeni-glow 1.4s ease-in-out infinite; }
+@keyframes zeni-glow { 50% { opacity: .25; } }
+#zeniSmear, #zeniBounce { width: 100%; accent-color: var(--accent-fill, var(--accent)); }
+.voice-settings { margin-top: 22px; }
+.voice-settings select { width: 100%; }

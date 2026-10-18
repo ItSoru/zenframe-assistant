@@ -1,4 +1,4 @@
-/* Zenframe Assistant host bridge, v1.2.0. ES3 for After Effects ExtendScript. */
+/* Zenframe Assistant host bridge, v1.3.0. ES3 for After Effects ExtendScript. */
 var ZenframeAssistant = (function () {
 
   var effectCache = null;
@@ -434,3 +434,45 @@ var ZenframeAssistant = (function () {
     }
   };
 }());
+
+/* ---------- 1.3.0: read-only helpers for Zeni's music vibing and video references ---------- */
+// Called directly (not through invoke) many times a second, so they stay tiny and never change the project.
+function ZenframeVibeTime() {
+  var c = app.project ? app.project.activeItem : null;
+  if (!(c && c instanceof CompItem)) return '{"c":0}';
+  return '{"c":' + c.id + ',"t":' + c.time + ',"ws":' + c.workAreaStart + ',"wd":' + c.workAreaDuration + ',"d":' + c.duration + ',"n":' + c.numLayers + '}';
+}
+function zfVibeQuote(s) { return '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\x00-\x1f]/g, ' ') + '"'; }
+// Audio layers of the active comp that come from a file. Path, timing and stretch only.
+function ZenframeVibeAudio() {
+  var c = app.project ? app.project.activeItem : null;
+  if (!(c && c instanceof CompItem)) return '{"c":0,"layers":[]}';
+  var out = [], i, L, f, n = Math.min(c.numLayers, 400);
+  for (i = 1; i <= n; i++) {
+    L = c.layer(i);
+    try {
+      if (!L.hasAudio || !L.audioEnabled || !L.source || !L.source.mainSource || !L.source.mainSource.file) continue;
+      f = L.source.mainSource.file;
+      if (!f.exists) continue;
+      out.push('{"i":' + i + ',"name":' + zfVibeQuote(L.name) + ',"path":' + zfVibeQuote(f.fsName) + ',"video":' + (L.hasVideo ? 'true' : 'false') +
+        ',"bytes":' + f.length + ',"mod":' + (f.modified ? f.modified.getTime() : 0) + ',"start":' + L.startTime + ',"in":' + L.inPoint + ',"out":' + L.outPoint + ',"stretch":' + L.stretch + '}');
+    } catch (e) {}
+  }
+  return '{"c":' + c.id + ',"layers":[' + out.join(',') + ']}';
+}
+// The file behind the first selected footage layer (for "use as video reference").
+function ZenframeSelectedFootage() {
+  var c = app.project ? app.project.activeItem : null;
+  if (!(c && c instanceof CompItem)) return '{"error":"Open a composition and select a video layer first."}';
+  var sel = c.selectedLayers, i, L, f;
+  for (i = 0; i < sel.length; i++) {
+    L = sel[i];
+    try {
+      if (L.hasVideo && L.source && L.source.mainSource && L.source.mainSource.file) {
+        f = L.source.mainSource.file;
+        if (f.exists) return '{"name":' + zfVibeQuote(L.name) + ',"path":' + zfVibeQuote(f.fsName) + ',"bytes":' + f.length + ',"in":' + (L.inPoint - L.startTime) + ',"out":' + (L.outPoint - L.startTime) + ',"stretch":' + L.stretch + '}';
+      }
+    } catch (e) {}
+  }
+  return '{"error":"Select a video layer that comes from a file (not a precomp or solid)."}';
+}

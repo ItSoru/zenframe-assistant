@@ -1,8 +1,8 @@
-/* Zenframe Assistant panel, v1.2.0. */
+/* Zenframe Assistant panel, v1.3.0. */
 (function () {
   'use strict';
 
-  var VERSION = '1.2.0';
+  var VERSION = '1.3.0';
   // Set this to your download page to show a "Check for updates" link in Settings.
   var UPDATE_URL = '';
   var MAX_CONVS = 20, MAX_MESSAGES = 80, PRIOR_MESSAGES = 16, MAX_SAVED_CHARS = 20000;
@@ -41,7 +41,7 @@
   }
   function saveSettings() {
     refreshUsage();
-    store('settings', { provider: settings.provider, claudePath: settings.claudePath || '', codexPath: settings.codexPath || '', nodePath: settings.nodePath || '', authMode: settings.authMode, confirmEdits: settings.confirmEdits, models: settings.models, baseUrls: settings.baseUrls, freeOnly: settings.freeOnly, efforts: settings.efforts });
+    store('settings', { provider: settings.provider, claudePath: settings.claudePath || '', codexPath: settings.codexPath || '', nodePath: settings.nodePath || '', authMode: settings.authMode, confirmEdits: settings.confirmEdits, models: settings.models, baseUrls: settings.baseUrls, freeOnly: settings.freeOnly, efforts: settings.efforts, voiceEngine: settings.voiceEngine || 'auto', voiceMic: settings.voiceMic || '' });
   }
 
   /* ---------- Bridge to ExtendScript ---------- */
@@ -63,7 +63,9 @@
         });
       });
     };
-    var pending = hostChain.then(run);
+    // Zeni's music watcher checks this so a slow tool call is never mistaken for playback.
+    var counted = function () { window.ZenframeHostBusy = (window.ZenframeHostBusy || 0) + 1; return run().then(function (r) { window.ZenframeHostBusy--; return r; }, function (e) { window.ZenframeHostBusy--; throw e; }); };
+    var pending = hostChain.then(counted);
     hostChain = pending.catch(function () {});
     return pending;
   }
@@ -651,6 +653,12 @@
         settings.nodePath = settings.nodePath || found.nodePath;
         runtime = new backend.Runtime({ callHost: host, onEvent: onEvent, onScript: stage, onConfirm: confirmEdits, openExtension: function (id) { nativeCEP.requestOpenExtension(id, ''); } });
         if (window.ZenframeUsage) window.ZenframeUsage.onRefresh(refreshUsage);
+        if (window.ZenframeVoice) window.ZenframeVoice.init({
+          settings: function () { return settings; },
+          update: function (o) { Object.keys(o).forEach(function (k) { settings[k] = o[k]; }); saveSettings(); },
+          engines: function () { return runtime.voiceEngines ? runtime.voiceEngines() : {}; },
+          transcribe: function (wav) { return runtime.transcribe(wav, settings); }
+        });
         refreshUsage();
         $('detectPaths').onclick = function () {
           var again = backend.findExecutables();
@@ -772,13 +780,13 @@
     $('apiKey').value = '';
     $('saveKey').disabled = true;
     $('keyStatus').textContent = 'Encrypting and saving…';
-    try { await runtime.saveKey(settings.provider, value); $('keyStatus').textContent = 'Key saved and encrypted for this Windows account.'; check(); }
+    try { await runtime.saveKey(settings.provider, value); $('keyStatus').textContent = 'Key saved and encrypted for this Windows account.'; check(); if (window.ZenframeVoice) window.ZenframeVoice.refresh(); }
     catch (e) { $('keyStatus').textContent = e.message; }
     finally { $('saveKey').disabled = busy; }
   };
   $('removeKey').onclick = function () {
     if (!runtime) return;
-    try { runtime.removeKey(settings.provider); $('keyStatus').textContent = 'Key removed from this computer.'; check(); }
+    try { runtime.removeKey(settings.provider); $('keyStatus').textContent = 'Key removed from this computer.'; check(); if (window.ZenframeVoice) window.ZenframeVoice.refresh(); }
     catch (e) { $('keyStatus').textContent = e.message; }
   };
   $('updatesLink').onclick = function (e) {

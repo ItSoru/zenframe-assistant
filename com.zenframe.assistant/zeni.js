@@ -1,4 +1,4 @@
-/* Zenframe Assistant 1.2.0. Local PNG companion; no network or project access. */
+/* Zenframe Assistant 1.3.0. Local PNG companion; no network or project access. */
 (function () {
   'use strict';
   var pack = window.ZenframeZeniSprites, composer = document.querySelector('.composer');
@@ -12,10 +12,11 @@
   var cache = {}, cacheOrder = [], colorToken = 0, colorTimer = 0, lastColor = '';
   // Size: 100% is about 130 px wide; Settings > Zeni > Size goes from 60% to 160%.
   var sizeKey = 'zenframeAssistant.zeniSize', sizeInput = document.getElementById('zeniSize'), sizeValue = document.getElementById('zeniSizeValue');
-  var size = 100, w = 0, h = 0, seatX = 0, seatY = 0, pivotX = 0, pivotY = 0;
+  var hit = null, size = 100, w = 0, h = 0, seatX = 0, seatY = 0, pivotX = 0, pivotY = 0;
   try { size = clampSize(Number(localStorage.getItem(sizeKey)) || 100); } catch (ignore) {}
   function clampSize(v) { return Math.max(60, Math.min(160, Math.round(v))); }
-  var x = 0, y = 0, theta = 0, omega = 0, stretch = 1, phase = 'seat', restAt = null;
+  var x = 0, y = 0, theta = 0, omega = 0, stretch = 1, phase = 'seat', restAt = null, landedOn = null;
+  try { restAt = JSON.parse(localStorage.getItem('zenframeAssistant.zeniSpot')) || null; } catch (ignore) {}
   var vx = 0, vy = 0, landY = 0, bounces = 0, phaseAt = 0, hopFrom = null;
   var frame = 0, lastTime = 0, layoutFrame = 0, pointer = null;
   var busy = false, baseMood = 'idle', flashMood = '', flashUntil = 0, moodTimer = 0;
@@ -30,6 +31,7 @@
     seatX = pack.seat[0] * k; seatY = pack.seat[1] * k;
     pivotX = pack.pickupPivot[0] * k; pivotY = pack.pickupPivot[1] * k;
     button.style.width = w + 'px'; button.style.height = h + 'px';
+    if (hit) hit.style.height = (seatY + 6) + 'px';
     button.style.transformOrigin = pivotX + 'px ' + pivotY + 'px';
     button.style.setProperty('--zeni-seat-x', seatX + 'px'); button.style.setProperty('--zeni-seat-y', seatY + 'px');
     html.style.setProperty('--zeni-w', w.toFixed(1) + 'px'); html.style.setProperty('--zeni-h', h.toFixed(1) + 'px');
@@ -38,10 +40,16 @@
   }
   measure();
   var breathe = document.createElement('span'); breathe.className = 'zeni-breathe';
+  // Only his head and body catch the mouse; clicks on his hanging legs go through to whatever is underneath.
+  hit = document.createElement('span'); hit.className = 'zeni-hit'; hit.style.height = (seatY + 6) + 'px';
   var art = document.createElement('span'); art.className = 'zeni-art';
   var sprites = [document.createElement('img'), document.createElement('img')];
   sprites.forEach(function (img) { img.alt = ''; img.draggable = false; img.setAttribute('aria-hidden', 'true'); art.appendChild(img); });
-  breathe.appendChild(art); button.appendChild(breathe); layer.appendChild(button);
+  // Dance poses are drawn on their own layer: a solid base pose, the next pose dissolving in, and two soft smear ghosts.
+  var dance = document.createElement('span'); dance.className = 'zeni-dance';
+  var danceImgs = ['base', 'top', 'ghost1', 'ghost2'].map(function (n) { var i = document.createElement('img'); i.alt = ''; i.draggable = false; i.className = 'zeni-dance-' + n; i.setAttribute('aria-hidden', 'true'); dance.appendChild(i); return i; });
+  breathe.appendChild(art); breathe.appendChild(dance); button.appendChild(breathe); button.appendChild(hit); layer.appendChild(button);
+  var glow = document.createElement('div'); glow.className = 'zeni-perch-glow'; layer.insertBefore(glow, button);
   var bubble = document.createElement('div'); bubble.id = 'zeni-bubble'; bubble.hidden = true; bubble.setAttribute('aria-hidden', 'true');
   var bubbleText = document.createElement('span'); bubbleText.id = 'zeni-bubble-text';
   var dots = document.createElement('span'); dots.className = 'zeni-dots';
@@ -56,6 +64,39 @@
   function seat() {
     var r = composer.getBoundingClientRect();
     return { x: clamp(r.right - w - 3, 0, innerWidth - w), y: clamp(r.top - seatY, 0, innerHeight - h), rect: r };
+  }
+  /* ---------- Places he can sit (1.3.0) ---------- */
+  // Each perch is an edge he can sit on. Dropped close to one, he snaps onto it and stays attached when the layout moves.
+  var spotKey = 'zenframeAssistant.zeniSpot';
+  var PERCHES = [
+    { id: 'composer', el: composer, edge: 'top' },
+    { id: 'tabs', el: document.querySelector('.conv-bar'), edge: 'top' },
+    { id: 'toggle', el: document.querySelector('.tab-track'), edge: 'top' },
+    { id: 'header', el: document.querySelector('header'), edge: 'bottom' }
+  ].filter(function (q) { return q.el; });
+  function perchById(id) { for (var i = 0; i < PERCHES.length; i++) if (PERCHES[i].id === id) return PERCHES[i]; return null; }
+  function perchRect(q) {
+    if (!q || !q.el.offsetParent) return null;
+    var r = q.el.getBoundingClientRect();
+    if (r.width < 20 || r.height <= 0 || r.bottom < 0 || r.top > innerHeight) return null;
+    return { left: r.left, right: r.right, y: q.edge === 'top' ? r.top : r.bottom };
+  }
+  function spotPosition(spot) {
+    if (!spot) return null;
+    if (!spot.perch) return { x: spot.x, y: spot.y };
+    var r = perchRect(perchById(spot.perch));
+    if (!r) return null; // what he sat on is hidden: he goes home to the message box
+    return { x: clamp(r.left + spot.dx, r.left - seatX, Math.min(innerWidth - w, r.right - seatX)), y: r.y - seatY };
+  }
+  function saveSpot() { try { if (restAt) localStorage.setItem(spotKey, JSON.stringify(restAt)); else localStorage.removeItem(spotKey); } catch (ignore) {} }
+  function showGlow(on) {
+    glow.textContent = '';
+    if (!on) return;
+    PERCHES.forEach(function (q) {
+      var r = perchRect(q); if (!r) return;
+      var line = document.createElement('i'); line.style.left = r.left + 'px'; line.style.top = (r.y - 1) + 'px'; line.style.width = (r.right - r.left) + 'px';
+      glow.appendChild(line);
+    });
   }
   // Clamp the transformed corners, not just the unrotated box: a swinging sprite stays on-screen.
   function contain() {
@@ -163,12 +204,15 @@
   function resetPosition(home) {
     if (frame) cancelAnimationFrame(frame);
     frame = 0; lastTime = 0; theta = 0; omega = 0; vx = 0; vy = 0; stretch = 1;
-    if (pointer) { var id = pointer.id; pointer = null; try { button.releasePointerCapture(id); } catch (ignore) {} }
-    if (home) restAt = null;
-    if (restAt) { phase = 'rest'; x = restAt.x; y = restAt.y; }
+    if (pointer) { var id = pointer.id; pointer = null; try { hit.releasePointerCapture(id); } catch (ignore) {} }
+    if (home) { restAt = null; saveSpot(); }
+    var spot = spotPosition(restAt);
+    if (restAt && !spot) restAt = null;
+    if (restAt) { phase = 'rest'; x = spot.x; y = spot.y; }
     else { phase = 'seat'; var p = seat(); x = p.x; y = p.y; }
+    showGlow(false);
     updateMood(); paint(); syncBubble();
-    if (restAt) restAt = { x: x, y: y };
+    if (restAt && !restAt.perch) restAt = { x: x, y: y };
   }
   function layout() {
     layoutFrame = 0;
@@ -177,7 +221,12 @@
     html.classList.toggle('zeni-enabled', enabled && ready);
     if (!visible) resetPosition();
     else if (phase === 'seat' && !pointer) { var p = seat(); x = p.x; y = p.y; paint(); }
-    else { contain(); paint(); if (phase === 'rest') restAt = { x: x, y: y }; }
+    else if (phase === 'rest' && !pointer) {
+      var spot = spotPosition(restAt);
+      if (!spot) { resetPosition(true); }
+      else { x = spot.x; y = spot.y; contain(); paint(); if (!restAt.perch) restAt = { x: x, y: y }; }
+    }
+    else { contain(); paint(); }
     syncBubble();
   }
   function scheduleLayout() { if (!layoutFrame && !disposed) layoutFrame = requestAnimationFrame(layout); }
@@ -213,10 +262,13 @@
       vy += 1200*dt; x += vx*dt; y += vy*dt; vx *= Math.exp(-1.2*dt);
       if (x < 0 || x > innerWidth-w) { x = clamp(x,0,innerWidth-w); vx *= -.25; }
       theta *= Math.exp(-12*dt); stretch += (1-stretch)*Math.min(1,dt*16);
-      var r = composer.getBoundingClientRect();
-      var center = x+seatX;
-      if (vy >= 0 && oldContact <= r.top && y+seatY >= r.top && center >= r.left && center <= r.right) land(r.top-seatY,t);
-      else if (y+h >= innerHeight-2) land(innerHeight-h-2,t);
+      var center = x+seatX, hitPerch = null;
+      if (vy >= 0) PERCHES.forEach(function (q) {
+        var r = perchRect(q);
+        if (r && !hitPerch && oldContact <= r.y + 2 && y+seatY >= r.y && center >= r.left && center <= r.right) hitPerch = { q: q, r: r };
+      });
+      if (hitPerch) { landedOn = { perch: hitPerch.q.id, left: hitPerch.r.left }; land(hitPerch.r.y-seatY,t); }
+      else if (y+h >= innerHeight-2) { landedOn = null; land(innerHeight-h-2,t); }
     } else if (phase === 'land') {
       // Exactly one small bounce, followed by a resting landing pose.
       if (bounces === 1) {
@@ -225,7 +277,8 @@
       }
       // He stays where he landed. Double-click him to send him home.
       if (t-phaseAt >= 1200) {
-        restAt = { x: x, y: y }; resetPosition(false); return;
+        restAt = landedOn ? { perch: landedOn.perch, dx: x - landedOn.left } : { x: x, y: y };
+        saveSpot(); resetPosition(false); return;
       }
     } else if (phase === 'hop') {
       var target = seat(), progress = clamp((t-phaseAt)/(reduced()?1:480),0,1);
@@ -242,36 +295,36 @@
     phase = 'land'; phaseAt = t; landY = clamp(top,0,innerHeight-h); y = landY;
     theta = 0; omega = 0; stretch = 1; vx = 0;
     bounces = reduced()?2:1; vy = reduced()?0:-95;
-    updateMood(); animateArt('zeni-land'); syncBubble();
+    showGlow(false); updateMood(); animateArt('zeni-land'); syncBubble();
   }
-  button.addEventListener('pointerdown',function (e) {
+  hit.addEventListener('pointerdown',function (e) {
     if (!visible || !sitting() || pointer || e.button !== 0 || e.isPrimary === false) return;
     e.preventDefault(); e.stopPropagation();
     pointer = {id:e.pointerId,startX:e.clientX,startY:e.clientY,tx:e.clientX,ty:e.clientY,sx:e.clientX,sy:e.clientY,px:e.clientX,py:e.clientY,vx:0,vy:0,ax:0,drag:false};
-    try { button.setPointerCapture(e.pointerId); } catch (ignore) { pointer = null; }
+    try { hit.setPointerCapture(e.pointerId); } catch (ignore) { pointer = null; }
   });
-  button.addEventListener('pointermove',function (e) {
+  hit.addEventListener('pointermove',function (e) {
     if (!pointer || pointer.id !== e.pointerId) return;
     e.preventDefault(); e.stopPropagation();
     pointer.tx = clamp(e.clientX,0,innerWidth); pointer.ty = clamp(e.clientY,0,innerHeight);
     if (!pointer.drag && Math.hypot(e.clientX-pointer.startX,e.clientY-pointer.startY) > 5) {
-      pointer.drag = true; phase = 'drag'; theta = 0; omega = 0;
+      pointer.drag = true; phase = 'drag'; theta = 0; omega = 0; showGlow(true);
       helloUntil = 0; updateMood(); syncBubble(); runFrames();
     }
   });
   function release(e,cancelled) {
     if (!pointer || (e.pointerId !== undefined && e.pointerId !== pointer.id)) return;
     var p = pointer; pointer = null;
-    try { button.releasePointerCapture(p.id); } catch (ignore) {}
+    try { hit.releasePointerCapture(p.id); } catch (ignore) {}
     if (cancelled) { resetPosition(); return; }
     if (!p.drag) { greet(); return; }
     phase = 'fall'; vx = reduced()?0:clamp(p.vx,-700,700); vy = reduced()?0:clamp(p.vy,-500,700);
     if (reduced()) { theta = 0; stretch = 1; }
     updateMood(); runFrames();
   }
-  button.addEventListener('pointerup',function (e) { e.preventDefault(); e.stopPropagation(); release(e,false); });
-  button.addEventListener('pointercancel',function (e) { release(e,true); });
-  button.addEventListener('lostpointercapture',function (e) { if (pointer) release(e,true); });
+  hit.addEventListener('pointerup',function (e) { e.preventDefault(); e.stopPropagation(); release(e,false); });
+  hit.addEventListener('pointercancel',function (e) { release(e,true); });
+  hit.addEventListener('lostpointercapture',function (e) { if (pointer) release(e,true); });
   button.addEventListener('click',function (e) { e.preventDefault(); e.stopPropagation(); if (e.detail === 0) greet(); });
   button.addEventListener('dragstart',function(e){e.preventDefault();});
   button.addEventListener('keydown',function(e){if(e.key==='Escape'&&phase!=='seat'){resetPosition(true);e.preventDefault();e.stopPropagation();}});
@@ -281,7 +334,7 @@
   button.addEventListener('dblclick',function(e){
     e.preventDefault(); e.stopPropagation();
     if(phase!=='rest'||pointer)return;
-    restAt=null; helloUntil=0; phase='hop'; phaseAt=now(); hopFrom={x:x,y:y}; updateMood(); syncBubble(); runFrames();
+    restAt=null; saveSpot(); helloUntil=0; phase='hop'; phaseAt=now(); hopFrom={x:x,y:y}; updateMood(); syncBubble(); runFrames();
   });
   document.addEventListener('visibilitychange',scheduleLayout);
 
@@ -357,7 +410,9 @@
     var oldX = seatX, oldY = seatY;
     size = clampSize(sizeInput.value); measure();
     try{localStorage.setItem(sizeKey,String(size));}catch(ignore){}
-    if (restAt) restAt = { x: restAt.x + oldX - seatX, y: restAt.y + oldY - seatY };
+    if (restAt && !restAt.perch) restAt = { x: restAt.x + oldX - seatX, y: restAt.y + oldY - seatY };
+    else if (restAt) restAt = { perch: restAt.perch, dx: restAt.dx + oldX - seatX };
+    saveSpot();
     resetPosition(false); layout();
   });
   setting.addEventListener('change',function(){
@@ -372,6 +427,92 @@
   [chat,settings,effort].forEach(function(el){layoutObserver.observe(el,{attributes:true,attributeFilter:['class','hidden','aria-hidden']});});
   var resizeObserver=new ResizeObserver(scheduleLayout);resizeObserver.observe(composer);resizeObserver.observe(document.body);
   motion.addListener(function(){if(reduced()){theta=0;omega=0;stretch=1;}scheduleLayout();});
+  /* ---------- Vibing to the comp's music (1.3.0) ---------- */
+  // Settings > Zeni: Dance to music, Smear and Bounce. While he is busy (thinking, working, approval, error)
+  // he keeps that pose so you can still read it, and only bounces on the beat.
+  var danceKey = 'zenframeAssistant.zeniDance', smearKey = 'zenframeAssistant.zeniSmear', bounceKey = 'zenframeAssistant.zeniBounce';
+  var danceInput = document.getElementById('zeniDance'), smearInput = document.getElementById('zeniSmear'), bounceInput = document.getElementById('zeniBounce');
+  var smearValue = document.getElementById('zeniSmearValue'), bounceValue = document.getElementById('zeniBounceValue');
+  var danceOn = true, smearAmt = 60, bounceAmt = 55, vibeFrame = 0, vibing = '', shownSrc = ['', '', '', ''];
+  try { danceOn = localStorage.getItem(danceKey) !== 'false'; smearAmt = num(localStorage.getItem(smearKey), 60); bounceAmt = num(localStorage.getItem(bounceKey), 55); } catch (ignore) {}
+  function num(v, d) { var n = Number(v); return v !== null && v !== '' && isFinite(n) ? Math.max(0, Math.min(100, n)) : d; }
+  function syncVibeInputs() {
+    if (danceInput) danceInput.checked = danceOn;
+    if (smearInput) smearInput.value = smearAmt; if (smearValue) smearValue.textContent = smearAmt + '%';
+    if (bounceInput) bounceInput.value = bounceAmt; if (bounceValue) bounceValue.textContent = bounceAmt + '%';
+  }
+  syncVibeInputs();
+  function eio(v) { return 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, v))); }
+  function src(name) { return currentSources[name] || pack.poses[name]; }
+  function setImg(i, name, opacity, transform, blur) {
+    var img = danceImgs[i], s2 = name ? src(name) : '';
+    if (s2 && shownSrc[i] !== s2) { img.src = s2; shownSrc[i] = s2; }
+    img.style.opacity = name ? opacity.toFixed(3) : '0';
+    img.style.transform = transform || '';
+    img.style.filter = blur ? 'blur(' + blur.toFixed(2) + 'px)' : '';
+  }
+  function canDance() {
+    return !busy && !approval && baseMood === 'idle' && !(flashMood && flashUntil > now()) && helloUntil <= now();
+  }
+  function stopVibe() {
+    if (!vibing) return;
+    vibing = ''; button.classList.remove('zeni-vibing', 'zeni-dancing');
+    breathe.style.transform = '';
+    for (var i = 0; i < 4; i++) setImg(i, '', 0);
+  }
+  function vibeLoop() {
+    vibeFrame = 0;
+    var api = window.ZenframeVibe;
+    var on = api && enabled && danceOn && visible && !disposed;
+    if (api) api.setEnabled(on);
+    if (!on) { stopVibe(); return; }
+    var st = sitting() && !reduced() ? api.state() : null;
+    if (!st) stopVibe();
+    else {
+      var unit = h / 110, bnc = bounceAmt / 100 * (0.5 + 0.5 * st.energy), sm = smearAmt / 100, b = st.beat;
+      var dancing = canDance();
+      button.classList.add('zeni-vibing'); button.classList.toggle('zeni-dancing', dancing);
+      vibing = dancing ? 'dance' : 'bounce';
+      if (st.mode === 'chill') {
+        var q = ((b / 2) % 1 + 1) % 1, sway = Math.sin(q * 2 * Math.PI);
+        var bob = (1 - Math.cos(q * 4 * Math.PI)) * 0.5 * 4 * bnc * unit;
+        var rot = sway * 0.025 * (0.6 + 0.4 * st.energy);
+        breathe.style.transform = 'translateY(' + bob.toFixed(2) + 'px) rotate(' + (dancing ? rot : rot * 0.4).toFixed(4) + 'rad)';
+        if (dancing) {
+          var seq = pack.vibe.chill, side = sway >= 0 ? seq[1] : seq[3], amt = eio((Math.abs(sway) - 0.35) / 0.3);
+          if (amt < 0.5) { setImg(0, seq[0], 1); setImg(1, side, amt * 2); }
+          else { setImg(0, side, 1); setImg(1, seq[0], (1 - amt) * 2); }
+          setImg(2, '', 0); setImg(3, '', 0);
+        }
+      } else {
+        var cyc = st.mode === 'half' ? 2 : 1, p = ((b / cyc) % 1 + 1) % 1, first = p < 0.18;
+        var wv = first ? eio(p / 0.18) : 1 - eio((p - 0.18) / 0.82);   // 0 = head up, 1 = head down on the beat
+        var dip = wv * 10 * bnc * unit, sq = 1 - 0.035 * bnc * wv, sx = 1 + 0.02 * bnc * wv;
+        var alt = (Math.floor(b / cyc) % 2) ? 1 : -1, tilt = (wv - 0.5) * 0.03 * st.energy * alt;
+        breathe.style.transform = 'translateY(' + dip.toFixed(2) + 'px) rotate(' + (dancing ? tilt : 0).toFixed(4) + 'rad) scale(' + sx.toFixed(4) + ',' + sq.toFixed(4) + ')';
+        if (dancing) {
+          var up = pack.vibe.up, down = pack.vibe.down, mix = eio((wv - 0.42) / 0.16);
+          if (mix < 0.5) { setImg(0, up, 1); setImg(1, down, mix * 2); } else { setImg(0, down, 1); setImg(1, up, (1 - mix) * 2); }
+          // Smear: soft, stretched ghosts only during the fastest part of the head drop.
+          var speed = Math.sin(Math.PI * (first ? p / 0.18 : (p - 0.18) / 0.82)) * (first ? 1 / 0.18 : 1 / 0.82);
+          var s2 = sm * Math.min(1, speed / 6), dir = first ? 1 : -1;
+          if (s2 > 0.02 && mix > 0.05 && mix < 0.95) {
+            setImg(2, down, 0.12 * s2 * mix, 'translateY(' + (-dir * 5 * s2 * unit).toFixed(2) + 'px) scaleY(' + (1 + 0.04 * s2).toFixed(3) + ')', 1.1 * s2 * unit);
+            setImg(3, down, 0.12 * s2 * mix, 'translateY(' + (-dir * 10 * s2 * unit).toFixed(2) + 'px) scaleY(' + (1 + 0.04 * s2).toFixed(3) + ')', 2.2 * s2 * unit);
+          } else { setImg(2, '', 0); setImg(3, '', 0); }
+        }
+      }
+      if (!dancing) for (var i = 0; i < 4; i++) setImg(i, '', 0);
+    }
+    vibeFrame = requestAnimationFrame(vibeLoop);
+  }
+  function startVibe() { if (!vibeFrame && !disposed) vibeFrame = requestAnimationFrame(vibeLoop); }
+  // Keep watching for music while he is shown with dancing on; the loop stops itself otherwise.
+  setInterval(function () { if (enabled && danceOn && visible) startVibe(); else if (window.ZenframeVibe) window.ZenframeVibe.setEnabled(false); }, 500);
+  if (danceInput) danceInput.addEventListener('change', function () { danceOn = danceInput.checked; try { localStorage.setItem(danceKey, String(danceOn)); } catch (ignore) {} if (!danceOn) stopVibe(); startVibe(); });
+  if (smearInput) smearInput.addEventListener('input', function () { smearAmt = num(smearInput.value, 60); try { localStorage.setItem(smearKey, String(smearAmt)); } catch (ignore) {} syncVibeInputs(); });
+  if (bounceInput) bounceInput.addEventListener('input', function () { bounceAmt = num(bounceInput.value, 55); try { localStorage.setItem(bounceKey, String(bounceAmt)); } catch (ignore) {} syncVibeInputs(); });
+
   window.ZenframeZeni={onEvent:event,setBusy:setBusy,confirm:confirm,stop:stop};
   var loaded=0;
   names.forEach(function(name){
@@ -381,7 +522,8 @@
     img.src=pack.poses[name];
   });
   window.addEventListener('unload',function(){
-    disposed=true;colorToken++;cancelAnimationFrame(frame);cancelAnimationFrame(layoutFrame);
+    disposed=true;colorToken++;cancelAnimationFrame(frame);cancelAnimationFrame(layoutFrame);cancelAnimationFrame(vibeFrame);
+    if(window.ZenframeVibe)window.ZenframeVibe.setEnabled(false);
     clearTimeout(moodTimer);clearTimeout(helloTimer);clearTimeout(colorTimer);
     activityObserver.disconnect();rootObserver.disconnect();layoutObserver.disconnect();resizeObserver.disconnect();
   });
