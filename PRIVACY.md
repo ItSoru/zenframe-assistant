@@ -11,9 +11,12 @@ When you send Zeni a message, Zenframe sends it to **the AI provider you chose i
 * property values, expressions and the text of text layers,
 * the names of installed effects, panels, scripts and presets,
 * **files you attach to a message** (images and text files you pick, drop or paste). They are sent only with that message and are not saved by Zenframe; only their names are kept in the conversation.
+* **frames Zeni renders to look at your edit** (1.4.0): After Effects renders the frames he asks for on your computer; they are sent as one image to your AI provider with that request and then deleted. They are not saved by Zenframe.
+* **a text timeline of your music** (beats, hits, loudness) when Zeni analyzes audio. The audio itself is analyzed on your computer and never sent.
+* **a summary of a project file you ask Zeni to study** (comp, layer and effect names, keyframe timing, clip lengths). The file is read on your computer by Python and never uploaded.
 * **video references you attach:** Zenframe takes up to 12 still frames from the video on your computer and sends them as one image with their timestamps. The video file itself is not uploaded.
 
-Zeni does **not** upload your footage, audio or rendered frames on its own. Nothing is attached unless you attach it.
+Zeni does **not** upload your footage or audio. Rendered frames are sent only when Zeni renders them for a request, and you see them in the chat.
 
 **Voice input:** your recording is turned into text by the engine chosen in Settings > Voice: Groq or OpenAI (sent with your saved key to that company's speech-to-text service), or Windows speech recognition, which stays on your computer. Recordings are not saved.
 

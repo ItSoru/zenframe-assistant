@@ -29,6 +29,7 @@
     var N = 1024, hop = 128, frames = Math.floor((x.length - N) / hop), win = new Float32Array(N), i, f, k;
     for (i = 0; i < N; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / N);
     var bins = 220 /* up to ~2.4 kHz */, prev = new Float32Array(bins), env = new Float32Array(Math.max(0, frames)), rms = new Float32Array(Math.max(0, frames));
+    var low = new Float32Array(Math.max(0, frames)), high = new Float32Array(Math.max(0, frames)); // 1.4.0: kick/bass vs snare/clap/hat
     var re = new Float64Array(N), im = new Float64Array(N);
     for (f = 0; f < frames; f++) {
       var off = f * hop, e = 0;
@@ -38,14 +39,14 @@
       var flux = 0;
       for (k = 1; k < bins; k++) {
         var mag = Math.log(1 + 100 * Math.sqrt(re[k] * re[k] + im[k] * im[k]));
-        var d = mag - prev[k]; if (d > 0) flux += d * (k < 30 ? 1.5 : 1); prev[k] = mag;
+        var d = mag - prev[k]; if (d > 0) { flux += d * (k < 30 ? 1.5 : 1); if (k < 14) low[f] += d; else if (k > 40) high[f] += d; } prev[k] = mag;
       }
       env[f] = flux;
     }
     // Remove slow trend so loud sections don't dominate.
     var w = 32, out = new Float32Array(env.length), acc = 0, q = [];
     for (f = 0; f < env.length; f++) { acc += env[f]; q.push(env[f]); if (q.length > 2 * w + 1) acc -= q.shift(); out[f] = Math.max(0, env[f] - acc / q.length); }
-    return { env: out, fps: sr / hop, rms: rms };
+    return { env: out, fps: sr / hop, rms: rms, low: low, high: high, raw: env };
   }
   function analyze(channels, sampleRate, opts) {
     opts = opts || {};
@@ -85,7 +86,28 @@
     for (b = bestOff; b < n; b += perF) { var a0 = Math.round(b), a1 = Math.min(n, Math.round(b + perF)), r = 0; for (i = a0; i < a1; i++) r += o.rms[i]; r /= Math.max(1, a1 - a0); beats.push(r); if (r > maxR) maxR = r; }
     for (b = 0; b < beats.length; b++) beats[b] = maxR ? +(beats[b] / maxR).toFixed(3) : 0;
     // Alternatives (half / double) so the UI can offer a quick fix.
-    return { bpm: bpmOut, period: period, offset: bestOff / fps, energy: beats, alt: [Math.round(bpmOut * 5) / 10, Math.round(bpmOut * 20) / 10] };
+    var result = { bpm: bpmOut, period: period, offset: bestOff / fps, energy: beats, alt: [Math.round(bpmOut * 5) / 10, Math.round(bpmOut * 20) / 10] };
+    if (opts.detail) detail(result, o, fps, n);
+    return result;
+  }
+  // 1.4.0: what Zeni "hears": the hits (with kick or snare character), a loudness curve and the quiet parts.
+  function detail(result, o, fps, n) {
+    var env = o.env, i, j, mean = 0, sd = 0;
+    for (i = 0; i < n; i++) mean += env[i]; mean /= Math.max(1, n);
+    for (i = 0; i < n; i++) sd += (env[i] - mean) * (env[i] - mean); sd = Math.sqrt(sd / Math.max(1, n));
+    var win = Math.max(1, Math.round(0.07 * fps)), hits = [], top = 0;
+    for (i = 1; i < n - 1; i++) {
+      var v = env[i]; if (v < mean + 1.2 * sd) continue;
+      var peak = true; for (j = Math.max(0, i - win); j <= Math.min(n - 1, i + win); j++) if (env[j] > v || (env[j] === v && j < i)) { peak = false; break; }
+      if (!peak) continue;
+      var lo = 0, hi = 0; for (j = Math.max(0, i - 1); j <= Math.min(n - 1, i + 1); j++) { lo += o.low[j]; hi += o.high[j]; }
+      hits.push({ t: i / fps, s: v, kind: lo / 13 > hi / 179 * 1.5 ? 'low' : 'high' }); if (v > top) top = v;
+    }
+    for (i = 0; i < hits.length; i++) hits[i].s = top ? Math.round(hits[i].s / top * 100) / 100 : 0;
+    var step = Math.max(1, Math.round(0.25 * fps)), loud = [], maxL = 0;
+    for (i = 0; i < n; i += step) { var r = 0, c = 0; for (j = i; j < Math.min(n, i + step); j++) { r += o.rms[j]; c++; } r /= Math.max(1, c); loud.push(r); if (r > maxL) maxL = r; }
+    for (i = 0; i < loud.length; i++) loud[i] = maxL ? Math.round(loud[i] / maxL * 100) / 100 : 0;
+    result.hits = hits; result.loudness = { step: step / fps, values: loud }; result.duration = n / fps;
   }
   var api = { analyze: analyze };
   if (typeof window !== 'undefined') window.ZenframeTempo = api;

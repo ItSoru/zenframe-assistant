@@ -1,10 +1,18 @@
-# Zenframe Assistant 1.3.1
+# Zenframe Assistant 1.4.0
 
 ## Zeni companion
 
 Zeni sits beside the message box and changes pose with the assistant's activity. Click him to wave, or drag him to pick him up and let go to drop him. He stays wherever you drop him; double-click him to send him back to his seat. His hoodie, hair streak, eyes, headphones and shoes follow your accent color. Settings → Zeni → **Size** sets how big he is. Settings → Zeni → **Show Zeni on the message box** turns the companion off and restores the prior layout; the preference stays on this computer. System reduced-motion preferences disable swing, breathing and decorative transitions.
 
 The thought bubble mirrors the activity status; long text is shortened visually, while the original status remains available to screen readers. The sprites adapt to the accent locally without sending images or settings anywhere. Skin, black hair, outlines and white shoe sections remain unchanged. The eight PNG poses use a common seat anchor so changing state keeps their seating position stable.
+
+## New in 1.4.0
+
+- **Zeni sees your edit.** He can have After Effects render the frames he needs (effects, shakes and grade included) and look at them as one numbered sheet. The frames he looked at show in the chat. Needs a model that reads images (Claude, GPT, Gemini).
+- **Zeni hears your edit.** The music is analyzed on your PC into a timeline: beats, BPM, the hits (kick or snare), the loud and quiet parts, and how many frames each cut, adjustment layer, keyframe and marker sits from the beat. Ask for a review and he listens first, then looks at the moments that matter.
+- **Zeni knows editing styles.** A built-in style library covers flow AMV, jugg, velocity, 3D / typography / mograph and MMV: what defines each, what is intentional, what makes it good and its real mistakes. Pick your styles in Settings and Zeni reads the right guide before a review.
+- **Study any project file.** Paperclip > Study a project file (or paste an .aep path) and Zeni breaks down how it was built without opening it, even a project that crashes After Effects: comps and nesting, effects and plugins, keyframe timing and easing, clip lengths, and how the cuts sit on the beat. Needs Python 3 and the free py-aep library (Settings > Project files > Install).
+- **Dance to more than one song.** Settings > Zeni > Music to dance to lists every layer with sound in the active comp, including video files (MP4 and others) and audio inside precomps. Check one or more; Zeni follows whichever is playing. Leave them all unchecked and he picks the music himself.
 
 ## New in 1.3.1
 

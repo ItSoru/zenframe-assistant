@@ -1,4 +1,4 @@
-/* Zenframe Assistant host bridge, v1.3.1. ES3 for After Effects ExtendScript. */
+/* Zenframe Assistant host bridge, v1.4.0. ES3 for After Effects ExtendScript. */
 var ZenframeAssistant = (function () {
 
   var effectCache = null;
@@ -211,9 +211,41 @@ var ZenframeAssistant = (function () {
     }
     return result;
   }
+  function interpName(t) {
+    try { if (t === KeyframeInterpolationType.HOLD) return 'hold'; if (t === KeyframeInterpolationType.LINEAR) return 'linear'; if (t === KeyframeInterpolationType.BEZIER) return 'bezier'; } catch (e) {}
+    return String(t);
+  }
+  function easeOf(list) {
+    var out = [], j;
+    for (j = 0; list && j < list.length; j++) out.push([Math.round(list[j].speed * 100) / 100, Math.round(list[j].influence * 10) / 10]);
+    return out;
+  }
+  function keyList(p, max) {
+    var keys = [], k, v;
+    for (k = 1; k <= p.numKeys && k <= max; k++) {
+      v = null;
+      try { v = p.keyValue(k); if (!(typeof v === 'number' || v instanceof Array || typeof v === 'string')) v = v && v.text !== undefined ? v.text : null; } catch (e1) {}
+      var key = { t: Math.round(p.keyTime(k) * 1000) / 1000, v: v };
+      try { key.interp = [interpName(p.keyInInterpolationType(k)), interpName(p.keyOutInterpolationType(k))]; } catch (e2) {}
+      try { if (p.keyOutInterpolationType(k) === KeyframeInterpolationType.BEZIER || p.keyInInterpolationType(k) === KeyframeInterpolationType.BEZIER) key.ease = { 'in': easeOf(p.keyInTemporalEase(k)), out: easeOf(p.keyOutTemporalEase(k)) }; } catch (e3) {}
+      keys.push(key);
+    }
+    return keys;
+  }
+  // Layer switches that matter for how an edit is built (motion blur, 3D, blend mode, parent, matte...).
+  function layerSwitches(l) {
+    var o = {};
+    try { o.enabled = l.enabled; o.inPoint = l.inPoint; o.outPoint = l.outPoint; o.startTime = l.startTime; o.stretch = l.stretch; } catch (e) {}
+    try { o.motionBlur = l.motionBlur; o.threeD = l.threeDLayer; o.adjustment = l.adjustmentLayer; o.timeRemap = l.timeRemapEnabled; } catch (e2) {}
+    try { o.blendingMode = l.blendingMode; o.trackMatte = l.trackMatteType; o.frameBlending = l.frameBlendingType; o.collapse = l.collapseTransformation; } catch (e3) {}
+    try { if (l.parent) o.parent = { index: l.parent.index, name: l.parent.name }; } catch (e4) {}
+    try { if (l.source) o.source = { name: l.source.name, type: l.source instanceof CompItem ? 'precomp' : 'footage' }; } catch (e5) {}
+    return o;
+  }
   function inspect(p, depth, budget) {
     var o = { name: p.name, matchName: p.matchName, index: p.propertyIndex };
     if (budget.n++ > 150) return { truncated: true };
+    if (budget.n === 1 && p.containingComp) o.layer = layerSwitches(p);
     if (p.propertyType === PropertyType.PROPERTY) {
       try {
         var v = p.value;
@@ -221,6 +253,8 @@ var ZenframeAssistant = (function () {
         else if (v && v.text !== undefined) o.value = { text: v.text, font: v.font, fontSize: v.fontSize };
       } catch (e) {}
       o.numKeys = p.numKeys;
+      // 1.4.0: the keyframes themselves (time, value, interpolation and ease), so motion can be studied.
+      if (p.numKeys > 0) try { o.keys = keyList(p, 12); if (p.numKeys > 12) o.keysTruncated = true; } catch (ke) {}
       o.canSetExpression = p.canSetExpression;
       if (p.canSetExpression) o.expression = p.expression;
     } else if (depth > 0) {
@@ -424,6 +458,72 @@ var ZenframeAssistant = (function () {
         app.endUndoGroup();
       }
     }
+    // 1.4.0, panel-only: render frames of a comp to PNG files in the temp folder, so Zeni can look at the edit.
+    // Read-only: renders with the comp's own settings and changes nothing in the project.
+    if (name === 'render_frames') {
+      var rc = a.compId ? comp(a.compId) : app.project.activeItem;
+      if (!(rc && rc instanceof CompItem)) fail('Open a composition first.');
+      if (typeof rc.saveFrameToPng !== 'function') fail('This version of After Effects cannot render single frames for scripts.');
+      var times = a.times instanceof Array ? a.times : [], fd = rc.frameDuration, frames = [], seenT = {};
+      var folder = new Folder(Folder.temp.fsName + '/ZenframeFrames');
+      if (!folder.exists) folder.create();
+      var stamp = new Date().getTime();
+      for (i = 0; i < times.length && frames.length < 16; i++) {
+        var t = Number(times[i]);
+        if (!isFinite(t)) continue;
+        t = Math.max(0, Math.min(rc.duration - fd, t));
+        var fr = Math.round(t / fd);
+        if (seenT[fr]) continue;
+        seenT[fr] = true;
+        var pf = new File(folder.fsName + '/zf' + stamp + '_' + frames.length + '.png');
+        if (pf.exists) pf.remove();
+        rc.saveFrameToPng(fr * fd, pf);
+        frames.push({ t: fr * fd, frame: fr, path: pf.fsName });
+      }
+      if (!frames.length) fail('Give one or more times (in seconds) inside the comp.');
+      return { compId: rc.id, name: rc.name, width: rc.width, height: rc.height, frameRate: rc.frameRate, frames: frames };
+    }
+    // 1.4.0, panel-only: when things happen on the timeline (cuts, adjustment layers, keyframes, markers),
+    // for lining the edit up with the music. Read-only.
+    if (name === 'timeline_events') {
+      var tc = a.compId ? comp(a.compId) : app.project.activeItem;
+      if (!(tc && tc instanceof CompItem)) fail('Open a composition first.');
+      var budget = { keys: 0 }, out = { compId: tc.id, name: tc.name, frameRate: tc.frameRate, duration: tc.duration, workAreaStart: tc.workAreaStart, workAreaDuration: tc.workAreaDuration, layers: [], markers: [] };
+      var collect = function (group, list, depth) {
+        for (var k = 1; k <= group.numProperties && budget.keys < 1500; k++) {
+          var pr = group.property(k);
+          if (!pr) continue;
+          if (pr.propertyType === PropertyType.PROPERTY) {
+            if (pr.numKeys > 0) {
+              var item = { prop: (group.name && depth > 0 ? group.name + ' > ' : '') + pr.name, keys: [] };
+              for (var q = 1; q <= pr.numKeys && q <= 60; q++) item.keys.push(Math.round(pr.keyTime(q) * 1000) / 1000);
+              budget.keys += item.keys.length; list.push(item);
+            }
+          } else if (depth < 4 && pr.enabled !== false) collect(pr, list, depth + 1);
+        }
+      };
+      for (i = 1; i <= Math.min(tc.numLayers, 300); i++) {
+        var L = tc.layer(i), type = 'other';
+        try {
+          if (L.adjustmentLayer) type = 'adjustment';
+          else if (L instanceof TextLayer) type = 'text';
+          else if (L instanceof ShapeLayer) type = 'shape';
+          else if (L instanceof CameraLayer) type = 'camera';
+          else if (L instanceof LightLayer) type = 'light';
+          else if (L.source instanceof CompItem) type = 'precomp';
+          else if (L.source && L.source.mainSource instanceof SolidSource) type = L.nullLayer ? 'null' : 'solid';
+          else if (L.source && L.hasVideo) type = 'footage';
+          else if (L.hasAudio) type = 'audio';
+        } catch (te) {}
+        var info = { i: i, name: L.name, type: type, on: !!L.enabled, 'in': Math.round(L.inPoint * 1000) / 1000, out: Math.round(L.outPoint * 1000) / 1000, keys: [] };
+        try { collect(L, info.keys, 0); } catch (ce) {}
+        try { var lm = L.property('ADBE Marker'); for (var m = 1; m <= lm.numKeys && m <= 50; m++) out.markers.push({ t: lm.keyTime(m), layer: i, text: String(lm.keyValue(m).comment).slice(0, 60) }); } catch (me) {}
+        out.layers.push(info);
+      }
+      try { var cm = tc.markerProperty; for (m = 1; m <= cm.numKeys && m <= 100; m++) out.markers.push({ t: cm.keyTime(m), text: String(cm.keyValue(m).comment).slice(0, 60) }); } catch (cme) {}
+      out.layersTruncated = tc.numLayers > 300;
+      return out;
+    }
     fail('Unknown host method');
   }
 
@@ -443,22 +543,35 @@ function ZenframeVibeTime() {
   return '{"c":' + c.id + ',"t":' + c.time + ',"ws":' + c.workAreaStart + ',"wd":' + c.workAreaDuration + ',"d":' + c.duration + ',"n":' + c.numLayers + '}';
 }
 function zfVibeQuote(s) { return '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\x00-\x1f]/g, ' ') + '"'; }
-// Audio layers of the active comp that come from a file. Path, timing and stretch only.
-function ZenframeVibeAudio() {
-  var c = app.project ? app.project.activeItem : null;
-  if (!(c && c instanceof CompItem)) return '{"c":0,"layers":[]}';
-  var out = [], i, L, f, n = Math.min(c.numLayers, 400);
-  for (i = 1; i <= n; i++) {
+// Sound sources of a comp: audio and video files with sound, also inside precomps (followed up to 4 levels deep),
+// each mapped into this comp's time: where the file starts, its total stretch and the part that is heard.
+function zfAudioWalk(c, off, k, winIn, winOut, prefix, top, depth, out) {
+  var i, L, f, n = Math.min(c.numLayers, 400), a, b;
+  for (i = 1; i <= n && out.length < 40; i++) {
     L = c.layer(i);
     try {
-      if (!L.hasAudio || !L.audioEnabled || !L.source || !L.source.mainSource || !L.source.mainSource.file) continue;
+      if (!L.hasAudio || !L.audioEnabled || !L.source || L.stretch <= 0) continue;
+      a = Math.max(winIn, off + k * L.inPoint); b = Math.min(winOut, off + k * L.outPoint);
+      if (b <= a) continue;
+      if (L.source instanceof CompItem) {
+        if (depth >= 4 || L.timeRemapEnabled) continue; // time-remapped precomps can't be followed
+        zfAudioWalk(L.source, off + k * L.startTime, k * L.stretch / 100, a, b, prefix + L.name + ' > ', top || i, depth + 1, out);
+        continue;
+      }
+      if (!L.source.mainSource || !L.source.mainSource.file) continue;
       f = L.source.mainSource.file;
       if (!f.exists) continue;
-      out.push('{"i":' + i + ',"name":' + zfVibeQuote(L.name) + ',"path":' + zfVibeQuote(f.fsName) + ',"video":' + (L.hasVideo ? 'true' : 'false') +
-        ',"bytes":' + f.length + ',"mod":' + (f.modified ? f.modified.getTime() : 0) + ',"start":' + L.startTime + ',"in":' + L.inPoint + ',"out":' + L.outPoint + ',"stretch":' + L.stretch + '}');
+      out.push('{"i":' + (top || i) + ',"name":' + zfVibeQuote(prefix + L.name) + ',"inPrecomp":' + (prefix ? 'true' : 'false') + ',"path":' + zfVibeQuote(f.fsName) + ',"video":' + (L.hasVideo ? 'true' : 'false') +
+        ',"bytes":' + f.length + ',"mod":' + (f.modified ? f.modified.getTime() : 0) + ',"start":' + (off + k * L.startTime) + ',"in":' + a + ',"out":' + b + ',"stretch":' + (k * L.stretch) + '}');
     } catch (e) {}
   }
-  return '{"c":' + c.id + ',"layers":[' + out.join(',') + ']}';
+}
+function ZenframeVibeAudio(id) {
+  var c = app.project ? app.project.activeItem : null, k, out = [];
+  if (id) { c = null; for (k = 1; k <= app.project.numItems; k++) if (app.project.item(k).id === id && app.project.item(k) instanceof CompItem) { c = app.project.item(k); break; } }
+  if (!(c && c instanceof CompItem)) return '{"c":0,"layers":[]}';
+  zfAudioWalk(c, 0, 1, -1e9, 1e9, '', 0, 0, out);
+  return '{"c":' + c.id + ',"name":' + zfVibeQuote(c.name) + ',"layers":[' + out.join(',') + ']}';
 }
 // The file behind the first selected footage layer (for "use as video reference").
 function ZenframeSelectedFootage() {

@@ -274,7 +274,7 @@ async function runAgent({ preset, baseUrl, key, model, system, definitions, hist
     if (turn.limits) emit('rate', turn.limits);
     if (turn.text && turn.text.trim()) { shown = shown ? shown + '\n\n' + turn.text.trim() : turn.text.trim(); emit('text', shown); }
     if (!turn.calls.length) return;
-    const anthropicResults = [];
+    const anthropicResults = [], frameImages = [];
     for (const call of turn.calls) {
       let value;
       if (isStopped()) value = { error: 'The request was stopped.' };
@@ -286,14 +286,40 @@ async function runAgent({ preset, baseUrl, key, model, system, definitions, hist
         }
         if (!value) value = await runTool(call.name, args || {});
       }
+      // 1.4.0: tools can return images (rendered frames). They go to the model as images, not as text.
+      const images = value && Array.isArray(value.__images) ? value.__images : null;
+      if (images) { value = Object.assign({}, value); delete value.__images; }
       let content = JSON.stringify(value);
       if (content.length > MAX_RESULT_CHARS) content = content.slice(0, MAX_RESULT_CHARS) + '…[truncated]';
-      if (preset.kind === 'anthropic') anthropicResults.push({ type: 'tool_result', tool_use_id: call.id, content, is_error: !!(value && value.error) });
-      else history.push({ role: 'tool', tool_call_id: call.id, content });
+      if (preset.kind === 'anthropic') {
+        const blocks = images ? [{ type: 'text', text: content }].concat(images.map(i => ({ type: 'image', source: { type: 'base64', media_type: i.mime, data: i.data } }))) : content;
+        anthropicResults.push({ type: 'tool_result', tool_use_id: call.id, content: blocks, is_error: !!(value && value.error) });
+      } else {
+        history.push({ role: 'tool', tool_call_id: call.id, content: images ? content + '\n[The rendered frames follow in the next message.]' : content });
+        if (images) images.forEach(i => frameImages.push(i));
+      }
     }
     if (anthropicResults.length) history.push({ role: 'user', content: anthropicResults });
+    // OpenAI-style tool messages can't carry images, so the frames follow as a short user message.
+    if (frameImages.length) { const m = { role: 'user', content: userContent(preset, 'Frames rendered by ae_render_frames, as requested above.', frameImages) }; FRAME_MESSAGES.add(m); history.push(m); }
   }
   emit('notice', 'Zeni stopped after ' + MAX_STEPS + ' steps to avoid looping. Ask again to continue.');
 }
 
-module.exports = { PRESETS, EFFORT_LEVELS, CLAUDE_CODE_MODELS, checkBaseUrl, listModels, runAgent, toolsFor, cleanSchema, maxTokensFor, readRateHeaders, resetIn, openRouterKey, userContent, forgetImages };
+const FRAME_MESSAGES = new WeakSet();
+// After a reply, rendered frames are replaced by a note so they are not sent again with every later message.
+function forgetToolImages(history, from) {
+  const note = '[Frames you rendered were shown here; render them again to look again.]';
+  for (let i = Math.max(0, from || 0); i < history.length; i++) {
+    const m = history[i];
+    if (!m || !Array.isArray(m.content)) continue;
+    if (FRAME_MESSAGES.has(m)) { history[i] = { role: 'user', content: note }; continue; }
+    m.content.forEach(b => {
+      if (b && b.type === 'tool_result' && Array.isArray(b.content) && b.content.some(x => x.type === 'image')) {
+        b.content = b.content.filter(x => x.type !== 'image').concat([{ type: 'text', text: note }]);
+      }
+    });
+  }
+}
+
+module.exports = { forgetToolImages, PRESETS, EFFORT_LEVELS, CLAUDE_CODE_MODELS, checkBaseUrl, listModels, runAgent, toolsFor, cleanSchema, maxTokensFor, readRateHeaders, resetIn, openRouterKey, userContent, forgetImages };

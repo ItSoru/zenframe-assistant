@@ -1,8 +1,8 @@
-/* Zenframe Assistant panel, v1.3.1. */
+/* Zenframe Assistant panel, v1.4.0. */
 (function () {
   'use strict';
 
-  var VERSION = '1.3.1';
+  var VERSION = '1.4.0';
   // Set this to your download page to show a "Check for updates" link in Settings.
   var UPDATE_URL = '';
   var MAX_CONVS = 20, MAX_MESSAGES = 80, PRIOR_MESSAGES = 16, MAX_SAVED_CHARS = 20000;
@@ -41,7 +41,7 @@
   }
   function saveSettings() {
     refreshUsage();
-    store('settings', { provider: settings.provider, claudePath: settings.claudePath || '', codexPath: settings.codexPath || '', nodePath: settings.nodePath || '', authMode: settings.authMode, confirmEdits: settings.confirmEdits, models: settings.models, baseUrls: settings.baseUrls, freeOnly: settings.freeOnly, efforts: settings.efforts, voiceEngine: settings.voiceEngine || 'auto', voiceMic: settings.voiceMic || '', editStyle: settings.editStyle || '' });
+    store('settings', { provider: settings.provider, claudePath: settings.claudePath || '', codexPath: settings.codexPath || '', nodePath: settings.nodePath || '', authMode: settings.authMode, confirmEdits: settings.confirmEdits, models: settings.models, baseUrls: settings.baseUrls, freeOnly: settings.freeOnly, efforts: settings.efforts, voiceEngine: settings.voiceEngine || 'auto', voiceMic: settings.voiceMic || '', editStyle: settings.editStyle || '', editStyles: settings.editStyles || [], pythonPath: settings.pythonPath || '' });
   }
 
   /* ---------- Bridge to ExtendScript ---------- */
@@ -52,7 +52,7 @@
         var finished = false;
         var timer = setTimeout(function () {
           if (!finished) { finished = true; reject(Error('After Effects has not responded. Close any open dialogs. A running script may still finish.')); }
-        }, name === 'run_installed_script' ? 15 * 60000 : 90000); // installed scripts may open their own dialogs
+        }, name === 'run_installed_script' || name === 'render_frames' ? 15 * 60000 : 90000); // installed scripts may open their own dialogs
         var payload = JSON.stringify(encodeURIComponent(JSON.stringify(args))).replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
         var code = 'ZenframeAssistant.invoke(' + JSON.stringify(name) + ',' + payload + ')';
         nativeCEP.evalScript(code, function (result) {
@@ -417,7 +417,7 @@
       if (c.id === activeId) scroll();
     }
     if (e.type === 'tool') {
-      var labels = { ae_get_context: 'Read composition', ae_inspect_layer: 'Inspect layer properties', ae_search_effects: 'Find installed effects', ae_apply_actions: 'Edit project', ae_stage_script: 'Draft a script', ae_list_tools: 'Look through your installed tools', ae_open_panel: 'Open a panel', ae_run_script: 'Run your script' };
+      var labels = { ae_get_context: 'Read composition', ae_inspect_layer: 'Inspect layer properties', ae_search_effects: 'Find installed effects', ae_apply_actions: 'Edit project', ae_stage_script: 'Draft a script', ae_list_tools: 'Look through your installed tools', ae_open_panel: 'Open a panel', ae_run_script: 'Run your script', ae_render_frames: 'Look at rendered frames', ae_analyze_audio: 'Listen to the music', ae_style_guide: 'Read the style guide', ae_study_project: 'Study a project file' };
       if (e.data.status === 'running') {
         c.activeTool = document.createElement('details'); c.activeTool.className = 'tool';
         var summary = document.createElement('summary'); summary.textContent = labels[e.data.name] || e.data.name;
@@ -426,6 +426,7 @@
       } else if (c.activeTool) {
         c.activeTool.className = 'tool ' + e.data.status;
         var p = document.createElement('p'); p.textContent = e.data.detail; c.activeTool.appendChild(p);
+        if (e.data.image && /^data:image\/(jpeg|png);base64,/.test(e.data.image)) { var shot = document.createElement('img'); shot.className = 'tool-frames'; shot.alt = 'Frames Zeni looked at'; shot.src = e.data.image; c.activeTool.appendChild(shot); c.activeTool.open = true; }
         c.activeTool = null;
       }
       if (applyingCard && (e.data.name === 'ae_apply_actions' || e.data.name === 'ae_run_script') && e.data.status !== 'running') {
@@ -651,7 +652,11 @@
         settings.claudePath = settings.claudePath || found.claudePath;
         settings.codexPath = settings.codexPath || found.codexPath || '';
         settings.nodePath = settings.nodePath || found.nodePath;
-        runtime = new backend.Runtime({ callHost: host, onEvent: onEvent, onScript: stage, onConfirm: confirmEdits, openExtension: function (id) { nativeCEP.requestOpenExtension(id, ''); } });
+        runtime = new backend.Runtime({ callHost: host, onEvent: onEvent, onScript: stage, onConfirm: confirmEdits,
+          renderFrames: function (a) { return window.ZenframeFrames ? window.ZenframeFrames.render(a, host) : Promise.resolve({ error: 'Frame rendering is not loaded.' }); },
+          analyzeAudioFile: function (p) { return window.ZenframeListen ? window.ZenframeListen.analyzePath(p) : Promise.reject(Error('Audio analysis is not loaded.')); },
+          analyzeAudio: function (a) { return window.ZenframeListen ? window.ZenframeListen.analyze(a, host) : Promise.resolve({ error: 'Audio analysis is not loaded.' }); },
+          openExtension: function (id) { nativeCEP.requestOpenExtension(id, ''); } });
         if (window.ZenframeUsage) window.ZenframeUsage.onRefresh(refreshUsage);
         if (window.ZenframeVoice) window.ZenframeVoice.init({
           settings: function () { return settings; },
@@ -768,7 +773,26 @@
     finally { $('loadModels').disabled = busy; }
   };
   $('confirmEdits').onchange = function () { setApproval($('confirmEdits').checked); };
+  // 1.4.0: project file reader (Python + py-aep).
+  function readerStatus() {
+    var el = $('aepReaderStatus'); if (!el || !runtime || !runtime.projectReaderStatus) return;
+    el.textContent = 'Checking…';
+    runtime.projectReaderStatus(settings).then(function (s) { el.textContent = s.message; $('aepReaderInstall').hidden = !!s.library; }, function (e) { el.textContent = e.message; });
+  }
+  if ($('aepReaderInstall')) $('aepReaderInstall').onclick = function () {
+    var el = $('aepReaderStatus'), b = $('aepReaderInstall'); b.disabled = true; el.textContent = 'Installing the project reader (py-aep)… this can take a minute.';
+    runtime.installProjectReader(settings).then(function (s) { el.textContent = s.message; b.hidden = !!s.library; b.disabled = false; }, function (e) { el.textContent = e.message; b.disabled = false; });
+  };
+  if ($('settingsButton')) $('settingsButton').addEventListener('click', function () { setTimeout(readerStatus, 50); });
   $('editStyle').value = settings.editStyle || '';
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="editStyles"]'), function (box) {
+    box.checked = (settings.editStyles || []).indexOf(box.value) >= 0; box.parentNode.classList.toggle('on', box.checked);
+    box.addEventListener('change', function () {
+      box.parentNode.classList.toggle('on', box.checked);
+      settings.editStyles = Array.prototype.filter.call(document.querySelectorAll('input[name="editStyles"]'), function (b) { return b.checked; }).map(function (b) { return b.value; });
+      saveSettings();
+    });
+  });
   $('editStyle').addEventListener('input', function () { settings.editStyle = $('editStyle').value.slice(0, 600); saveSettings(); });
   $('saveSettings').onclick = function () {
     settings.claudePath = $('claudePath').value.trim();

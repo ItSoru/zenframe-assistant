@@ -1,5 +1,7 @@
-/* Zenframe Assistant 1.3.0: Zeni vibes to the music in your comp.
-   The song's tempo and beat grid are worked out once, locally, from the audio file of the comp's music layer.
+/* Zenframe Assistant 1.3.0 (1.4.0: several songs, video files and precomps): Zeni vibes to the music in your comp.
+   Each song's tempo and beat grid are worked out once, locally, from its file. By default Zeni picks the music
+   layer himself; in Settings > Zeni you can pick one or more layers (audio, video files or precomps with sound)
+   and he follows whichever of them is playing at that moment.
    Playback is detected from After Effects' own output level (a small Windows helper reads the level meter of
    After Effects' audio sessions, see backend/AudioMeter.cs): when After Effects starts making sound, the comp is
    playing from where the playhead was. Zeni then follows the beat grid with the panel's own clock (looping in
@@ -9,10 +11,11 @@
   'use strict';
   var cep = window.__adobe_cep__;
   var nodeRequire = window.cep_node ? window.cep_node.require : typeof require === 'function' ? require : null;
-  var POLL_MS = 50, STALL_MS = 150, LOUD = 0.002, QUIET_MS = 800, AUDIO_LAG_MS = 20, AUDIO_EVERY_MS = 2000, MAX_BYTES = 150 * 1024 * 1024, CACHE_KEY = 'zenframeAssistant.tempoCache';
+  var POLL_MS = 50, STALL_MS = 150, LOUD = 0.002, QUIET_MS = 800, AUDIO_LAG_MS = 20, AUDIO_EVERY_MS = 2000, MAX_BYTES = 150 * 1024 * 1024, MAX_VIDEO_BYTES = 600 * 1024 * 1024, CACHE_KEY = 'zenframeAssistant.tempoCache', PICK_KEY = 'zenframeAssistant.musicPick';
 
   var enabled = false, timer = 0, pending = null, lastReply = null, playing = null, lastAudioCheck = -Infinity;
-  var song = null, songKey = '', analyzing = '', failedKeys = {}, idleReplies = 0;
+  var songs = [], compId = 0, compName = '', sources = [], analyzing = '', failedKeys = {}, idleReplies = 0, picks = {};
+  try { picks = JSON.parse(localStorage.getItem(PICK_KEY)) || {}; } catch (e) { picks = {}; }
   var memo = {};
   var meter = { status: 'off', peak: 0, loudAt: 0, sessions: 0, stop: null, reason: '' };
   try { memo = JSON.parse(localStorage.getItem(CACHE_KEY)) || {}; } catch (e) { memo = {}; }
@@ -29,19 +32,29 @@
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(memo)); } catch (e) {}
   }
 
-  /* ---------- Finding and analyzing the song ---------- */
+  /* ---------- Finding and analyzing the songs ---------- */
+  function sourceId(l) { return l.name + '|' + l.path; }
+  function fileKey(l) { return l.path + '|' + l.bytes + '|' + l.mod; }
+  function usable(l) { return l.bytes > 0 && l.bytes <= (l.video ? MAX_VIDEO_BYTES : MAX_BYTES) && l.stretch > 0 && l.out > l.in; }
   function pickLayer(layers) {
-    var list = (layers || []).filter(function (l) { return l.bytes > 0 && l.bytes <= MAX_BYTES && l.stretch > 0 && l.out > l.in; });
+    var list = (layers || []).filter(usable);
     // Music first: audio-only files, then the longest.
     list.sort(function (a, b) { return (a.video - b.video) || ((b.out - b.in) - (a.out - a.in)); });
     return list[0] || null;
   }
+  // The layers Zeni follows in this comp: the ones picked in Settings, or his own choice.
+  function chosen(layers, id) {
+    var pick = picks[id] || [];
+    if (pick.length) return (layers || []).filter(function (l) { return pick.indexOf(sourceId(l)) >= 0 && usable(l); });
+    var one = pickLayer(layers);
+    return one ? [one] : [];
+  }
   function analyze(layer) {
-    var key = layer.path + '|' + layer.bytes + '|' + layer.mod;
-    var timing = { start: layer.start, stretch: layer.stretch, inPoint: layer.in, outPoint: layer.out };
-    if (memo[key]) { memo[key].at = Date.now(); song = Object.assign({}, memo[key].r, timing); songKey = key; return; }
-    if (analyzing === key || failedKeys[key] || !nodeRequire) return;
+    var key = fileKey(layer);
+    if (memo[key]) { memo[key].at = Date.now(); return; }
+    if (analyzing || failedKeys[key] || !nodeRequire) return;
     analyzing = key;
+    var done = function () { analyzing = ''; rebuild(); };
     setTimeout(function () {
       try {
         var fs = nodeRequire('fs'), buf = fs.readFileSync(layer.path), ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
@@ -51,27 +64,40 @@
             try {
               var ch = []; for (var i = 0; i < audio.numberOfChannels; i++) ch.push(audio.getChannelData(i));
               var est = window.ZenframeTempo.analyze(ch, audio.sampleRate);
-              var r = { bpm: est.bpm, period: est.period, offset: est.offset, energy: est.energy };
-              memo[key] = { r: r, at: Date.now() }; saveMemo();
-              if (analyzing === key) { song = Object.assign({}, r, timing); songKey = key; }
+              memo[key] = { r: { bpm: est.bpm, period: est.period, offset: est.offset, energy: est.energy }, at: Date.now() }; saveMemo();
             } catch (e) { failedKeys[key] = true; }
-            analyzing = ''; try { ctx.close(); } catch (e) {}
+            try { ctx.close(); } catch (e) {}
+            done();
           }, 20);
-        }, function () { failedKeys[key] = true; analyzing = ''; try { ctx.close(); } catch (e) {} });
-      } catch (e) { failedKeys[key] = true; analyzing = ''; }
+        }, function () { failedKeys[key] = true; try { ctx.close(); } catch (e) {} done(); });
+      } catch (e) { failedKeys[key] = true; done(); }
     }, 20);
   }
-  function checkAudio() {
+  var lastLayers = [];
+  function rebuild() {
+    var list = chosen(lastLayers, compId);
+    songs = list.filter(function (l) { return memo[fileKey(l)]; }).map(function (l) {
+      return Object.assign({}, memo[fileKey(l)].r, { name: l.name, start: l.start, stretch: l.stretch, inPoint: l.in, outPoint: l.out });
+    });
+    // Analyze what's missing, one file at a time.
+    for (var i = 0; i < list.length; i++) if (!memo[fileKey(list[i])] && !failedKeys[fileKey(list[i])]) { analyze(list[i]); break; }
+  }
+  function checkAudio(done) {
     lastAudioCheck = now();
     call('ZenframeVibeAudio', function (j) {
-      if (!j || !j.c) { song = null; songKey = ''; return; }
-      var layer = pickLayer(j.layers);
-      if (!layer) { song = null; songKey = ''; return; }
-      var key = layer.path + '|' + layer.bytes + '|' + layer.mod;
-      if (key === songKey && song) { song.start = layer.start; song.stretch = layer.stretch; song.inPoint = layer.in; song.outPoint = layer.out; return; }
-      analyze(layer);
+      if (!j || !j.c) { songs = []; sources = []; compId = 0; lastLayers = []; if (done) done(); return; }
+      compId = j.c; compName = j.name || ''; lastLayers = j.layers || [];
+      sources = lastLayers.map(function (l) { return { id: sourceId(l), name: l.name, video: l.video, inPrecomp: l.inPrecomp, from: l.in, to: l.out, usable: usable(l), bpm: memo[fileKey(l)] ? memo[fileKey(l)].r.bpm * 100 / l.stretch : null, failed: !!failedKeys[fileKey(l)] }; });
+      rebuild();
+      if (done) done();
     });
   }
+  // The song playing at comp time t (the first picked one that covers t).
+  function songAt(t) {
+    for (var i = 0; i < songs.length; i++) if (t >= songs[i].inPoint && t <= songs[i].outPoint) return songs[i];
+    return null;
+  }
+  function anySong() { return songs[0] || null; }
 
   /* ---------- Hearing After Effects play ---------- */
   function meterUsable() { return meter.status === 'ok' && meter.sessions > 0; }
@@ -99,7 +125,7 @@
     var t = now();
     if (peak < LOUD) return;
     meter.loudAt = t;
-    if (!playing && enabled && song && lastReply && t - lastReply.at < 1000) {
+    if (!playing && enabled && songs.length && lastReply && t - lastReply.at < 1000) {
       playing = { by: 'meter', from: lastReply.t, cti: lastReply.t, wall: t - AUDIO_LAG_MS, ws: lastReply.ws, wd: lastReply.wd };
     }
   }
@@ -136,7 +162,7 @@
   function watch(token) {
     setTimeout(function () {
       if (pending !== token || playing || !enabled || meter.status === 'ok' || meter.status === 'starting') return; // the meter knows better: no dancing while scrubbing
-      if (song && lastReply && idleReplies >= 3 && !hostBusy() && token.sent - lastReply.at < 400) {
+      if (songs.length && lastReply && idleReplies >= 3 && !hostBusy() && token.sent - lastReply.at < 400) {
         playing = { by: 'stall', from: lastReply.t, wall: token.sent, ws: lastReply.ws, wd: lastReply.wd };
       }
     }, STALL_MS);
@@ -152,8 +178,9 @@
   }
   function state() {
     var t = compTime();
-    if (t === null || !song) return null;
-    if (t < song.inPoint || t > song.outPoint) return null; // the music isn't playing at this point of the comp
+    if (t === null) return null;
+    var song = songAt(t);
+    if (!song) return null; // none of the music is playing at this point of the comp
     var speed = 100 / song.stretch, fileTime = (t - song.start) * speed;
     var bpm = song.bpm * speed, beat = (fileTime - song.offset) / song.period;
     var e = song.energy && song.energy.length ? song.energy[Math.max(0, Math.min(song.energy.length - 1, Math.floor(beat)))] : 0.8;
@@ -169,20 +196,66 @@
       if (enabled) { lastAudioCheck = -Infinity; startMeter(); schedule(0); } else { clearTimeout(timer); stopMeter(); }
     },
     state: state,
-    song: function () { return song ? { bpm: song.bpm * 100 / song.stretch } : null; },
+    song: function () { var s = anySong(); return s ? { bpm: s.bpm * 100 / s.stretch, name: s.name } : null; },
+    // 1.4.0: the comp's sound sources, and the ones picked for dancing (empty = automatic).
+    sources: function (cb) { checkAudio(function () { cb({ compId: compId, compName: compName, sources: sources, pick: (picks[compId] || []).slice() }); }); },
+    setPick: function (id, list) {
+      if (list && list.length) picks[id] = list.slice(0, 20); else delete picks[id];
+      var keys = Object.keys(picks); if (keys.length > 40) delete picks[keys[0]];
+      try { localStorage.setItem(PICK_KEY, JSON.stringify(picks)); } catch (e) {}
+      if (id === compId) rebuild();
+    },
+    pick: function (id) { return (picks[id] || []).slice(); },
     // For tests.
-    _debug: function () { return { enabled: enabled, playing: playing, song: song, lastReply: lastReply, meter: { status: meter.status, sessions: meter.sessions, peak: meter.peak, reason: meter.reason } }; },
+    _debug: function () { return { enabled: enabled, playing: playing, song: anySong(), songs: songs, lastReply: lastReply, meter: { status: meter.status, sessions: meter.sessions, peak: meter.peak, reason: meter.reason } }; },
     _heard: heard,
     _setMeter: function (status, sessions) { meter.status = status; meter.sessions = sessions; }
   };
   window.addEventListener('beforeunload', stopMeter);
+  /* ---------- Settings > Zeni: which layers he dances to ---------- */
+  var shownFor = null;
+  function clockText(t) { var m = Math.floor(Math.max(0, t) / 60), sec = Math.max(0, t) - m * 60; return m + ':' + (sec < 10 ? '0' : '') + sec.toFixed(1); }
+  function renderPick(info) {
+    var list = document.getElementById('musicPickList'), hint = document.getElementById('musicPickHint');
+    if (!list || !hint) return;
+    shownFor = info.compId;
+    list.textContent = '';
+    if (!info.compId) { hint.textContent = 'Open a comp to see its sound layers.'; return; }
+    if (!info.sources.length) { hint.textContent = 'No layers with sound from a file in "' + info.compName + '".'; return; }
+    hint.textContent = info.pick.length ? 'Zeni follows the checked layers in "' + info.compName + '", whichever is playing.' : 'Automatic: Zeni picks the music in "' + info.compName + '". Check layers to choose yourself (one or more).';
+    info.sources.forEach(function (src) {
+      var row = document.createElement('label'), box = document.createElement('input'), text = document.createElement('span'), sub = document.createElement('small');
+      box.type = 'checkbox'; box.value = src.id; box.checked = info.pick.indexOf(src.id) >= 0; box.disabled = !src.usable;
+      text.textContent = src.name;
+      sub.textContent = [src.inPrecomp ? 'in a precomp' : src.video ? 'video file' : 'audio file', clockText(src.from) + '–' + clockText(src.to), src.bpm ? Math.round(src.bpm) + ' BPM' : src.failed ? 'could not read its sound' : '', src.usable ? '' : 'too large to analyze'].filter(Boolean).join(' · ');
+      text.appendChild(sub); row.appendChild(box); row.appendChild(text);
+      if (!src.usable) row.className = 'off';
+      box.addEventListener('change', function () {
+        var ids = Array.prototype.slice.call(list.querySelectorAll('input:checked')).map(function (b) { return b.value; });
+        window.ZenframeVibe.setPick(info.compId, ids);
+        info.pick = ids;
+        hint.textContent = ids.length ? 'Zeni follows the checked layers in "' + info.compName + '", whichever is playing.' : 'Automatic: Zeni picks the music in "' + info.compName + '". Check layers to choose yourself (one or more).';
+      });
+      list.appendChild(row);
+    });
+  }
+  function refreshPick() { if (cep) window.ZenframeVibe.sources(renderPick); }
+  var refreshBtn = document.getElementById('musicPickRefresh');
+  if (refreshBtn) refreshBtn.addEventListener('click', refreshPick);
+  // Fill the list when Settings opens, and again if the active comp changes while it's open.
+  setInterval(function () {
+    var box = document.getElementById('musicPick');
+    if (!box || !box.offsetParent) { shownFor = null; return; }
+    if (shownFor === null || (compId && shownFor !== compId)) { shownFor = compId || 0; refreshPick(); }
+  }, 700);
   // Settings > Zeni shows how playback is being detected.
   setInterval(function () {
     var el = document.getElementById('zeniMusicStatus'); if (!el || !el.offsetParent) return;
+    var song = anySong(), st = state(), bpmText = function (x) { return Math.round(x.bpm * 100 / x.stretch) + ' BPM'; };
+    var ready = songs.length > 1 ? songs.length + ' songs ready (' + songs.map(bpmText).join(', ') + ')' : song ? 'ready (' + bpmText(song) + ')' : '';
     var text = !enabled ? '' : meter.status === 'starting' ? 'Music: getting ready…'
-      : meterUsable() ? (playing ? 'Music: dancing at ' + Math.round(song.bpm * 100 / song.stretch) + ' BPM.' : song ? 'Music: ready (' + Math.round(song.bpm * 100 / song.stretch) + ' BPM). Press play in your comp.' : 'Music: listening. Open a comp with a song.')
-      : meter.status === 'ok' ? (song ? 'Music: ready (' + Math.round(song.bpm * 100 / song.stretch) + ' BPM). Press play; Zeni starts on the first sound.' : 'Music: listening. Open a comp with a song.')
-      : 'Music: basic detection' + (meter.reason ? ' (' + meter.reason.split('\n')[0].slice(0, 120) + ')' : '') + '.';
+      : meter.status === 'ok' ? (st ? 'Music: dancing at ' + Math.round(st.bpm) + ' BPM.' : song ? 'Music: ' + ready + '. Press play in your comp.' : analyzing ? 'Music: finding the beat…' : 'Music: listening. Open a comp with a song.')
+      : 'Music: basic detection' + (meter.reason ? ' (' + meter.reason.split('\n')[0].slice(0, 120) + ')' : '') + (song ? '. ' + ready : '') + '.';
     if (el.textContent !== text) el.textContent = text;
   }, 500);
 }());

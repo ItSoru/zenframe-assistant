@@ -222,6 +222,14 @@
       window.ZenframeAttach.addPath(j.path, j.name, { in: Math.max(0, j.in * k), out: Math.max(0, j.out * k) });
     });
   });
+  item('Study a project file (.aep)', 'Zeni reads how it was built, without opening it', function () {
+    var picked = null;
+    try { var r = window.cep && window.cep.fs && window.cep.fs.showOpenDialogEx ? window.cep.fs.showOpenDialogEx(false, false, 'Choose an After Effects project', '', ['aep']) : null; picked = r && r.data && r.data[0]; } catch (e) {}
+    if (!picked) { if (!(window.cep && window.cep.fs)) note('Paste the full path of the .aep file into your message instead.'); return; }
+    var text = 'Study this project file and break down how it is built: ' + decodeURIComponent(String(picked).replace(/^file:\/\//, ''));
+    prompt.value = prompt.value ? prompt.value.replace(/\s*$/, '\n') + text : text;
+    prompt.dispatchEvent(new Event('input', { bubbles: true })); prompt.focus();
+  });
   document.body.appendChild(menu); // outside the message box, which clips anything that pokes out of it
   function placeMenu() {
     var c = composer.getBoundingClientRect(), b = button.getBoundingClientRect();

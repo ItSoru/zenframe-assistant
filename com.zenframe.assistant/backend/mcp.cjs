@@ -8,7 +8,7 @@ const definitions = require('./tools.cjs');
 const port = Number(process.env.ZENFRAME_PORT);
 const token = process.env.ZENFRAME_TOKEN;
 // Edits may wait for the user to click Apply, so they get a longer limit.
-const TIMEOUTS = { ae_apply_actions: 15 * 60 * 1000, ae_run_script: 15 * 60 * 1000 };
+const TIMEOUTS = { ae_apply_actions: 15 * 60 * 1000, ae_run_script: 15 * 60 * 1000, ae_render_frames: 10 * 60 * 1000, ae_analyze_audio: 5 * 60 * 1000, ae_study_project: 10 * 60 * 1000 };
 const DEFAULT_TIMEOUT = 2 * 60 * 1000;
 
 function send(obj) { process.stdout.write(JSON.stringify(obj) + '\n'); }
@@ -45,7 +45,7 @@ readline.createInterface({ input: process.stdin, crlfDelay: Infinity }).on('line
   try {
     let result;
     if (r.method === 'initialize') {
-      result = { protocolVersion: r.params.protocolVersion, capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'zenframe-aftereffects', version: '1.3.1' } };
+      result = { protocolVersion: r.params.protocolVersion, capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'zenframe-aftereffects', version: '1.4.0' } };
     } else if (r.method === 'ping') {
       result = {};
     } else if (r.method === 'tools/list') {
@@ -53,8 +53,11 @@ readline.createInterface({ input: process.stdin, crlfDelay: Infinity }).on('line
     } else if (r.method === 'tools/call') {
       if (!definitions.some(t => t.name === r.params.name)) throw new Error('Unknown tool');
       try {
-        const value = await call(r.params.name, r.params.arguments || {});
-        result = { content: [{ type: 'text', text: JSON.stringify(value) }], isError: !!value.error };
+        let value = await call(r.params.name, r.params.arguments || {});
+        // 1.4.0: rendered frames come back as real images.
+        const images = value && Array.isArray(value.__images) ? value.__images : [];
+        if (images.length) { value = Object.assign({}, value); delete value.__images; }
+        result = { content: [{ type: 'text', text: JSON.stringify(value) }].concat(images.map(i => ({ type: 'image', data: i.data, mimeType: i.mime }))), isError: !!value.error };
       } catch (e) {
         result = { content: [{ type: 'text', text: e.message }], isError: true };
       }
