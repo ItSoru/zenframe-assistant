@@ -1,8 +1,8 @@
-/* Zenframe Assistant panel, v1.0.4. */
+/* Zenframe Assistant panel, v1.0.5. */
 (function () {
   'use strict';
 
-  var VERSION = '1.0.4';
+  var VERSION = '1.0.5';
   // Set this to your download page to show a "Check for updates" link in Settings.
   var UPDATE_URL = '';
   var MAX_CONVS = 20, MAX_MESSAGES = 80, PRIOR_MESSAGES = 16, MAX_SAVED_CHARS = 20000;
@@ -66,24 +66,30 @@
   function scroll() { var el = $('messages'); el.scrollTop = el.scrollHeight; }
 
   /* ---------- Messages ---------- */
-  function renderBody(el, text) {
+  function codeBlock(parent, code) {
+    var pre = document.createElement('pre'); pre.textContent = code; parent.appendChild(pre);
+    var bar = document.createElement('div'); bar.className = 'code-actions';
+    var button = document.createElement('button'); button.textContent = 'Open in script editor';
+    button.onclick = function () { stage({ title: 'Script from conversation', code: code, explanation: 'Review this code before running it.' }); view('scripts'); };
+    bar.appendChild(button); parent.appendChild(bar);
+  }
+  // Zeni's replies are shown as formatted Markdown; your own messages and errors stay plain text.
+  function renderBody(el, text, role) {
+    if (role !== 'user' && role !== 'error' && window.ZenframeMarkdown) {
+      window.ZenframeMarkdown.render(el, text, { code: codeBlock });
+      return;
+    }
     el.textContent = '';
     String(text).split(/(```[\s\S]*?```)/g).forEach(function (part) {
-      if (part.slice(0, 3) === '```') {
-        var code = part.replace(/^```[^\n]*\n?/, '').replace(/```$/, '');
-        var pre = document.createElement('pre'); pre.textContent = code; el.appendChild(pre);
-        var bar = document.createElement('div'); bar.className = 'code-actions';
-        var button = document.createElement('button'); button.textContent = 'Open in script editor';
-        button.onclick = function () { stage({ title: 'Script from conversation', code: code, explanation: 'Review this code before running it.' }); view('scripts'); };
-        bar.appendChild(button); el.appendChild(bar);
-      } else el.appendChild(document.createTextNode(part));
+      if (part.slice(0, 3) === '```') codeBlock(el, part.replace(/^```[^\n]*\n?/, '').replace(/```$/, ''));
+      else el.appendChild(document.createTextNode(part));
     });
   }
   function messageElement(conv, role, text) {
     var wrapper = document.createElement('article'); wrapper.className = 'message ' + role;
     var author = document.createElement('div'); author.className = 'author';
     author.textContent = role === 'user' ? 'YOU' : role === 'error' ? 'CONNECTION / ERROR' : 'Zeni';
-    var body = document.createElement('div'); body.className = 'body'; renderBody(body, text);
+    var body = document.createElement('div'); body.className = 'body'; renderBody(body, text, role);
     wrapper.appendChild(author); wrapper.appendChild(body);
     conv.el.appendChild(wrapper);
     return body;
@@ -364,7 +370,7 @@
     if (e.type === 'start') setBusy(true);
     if (e.type === 'text') {
       if (!c.reply) c.reply = message(c, 'assistant', '');
-      renderBody(c.reply.body, e.data); c.reply.record.text = e.data;
+      renderBody(c.reply.body, e.data, 'assistant'); c.reply.record.text = e.data;
       if (c.id === activeId) scroll();
     }
     if (e.type === 'tool') {

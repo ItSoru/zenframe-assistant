@@ -1,3 +1,10 @@
+# Version 1.0.5
+
+- **Formatted replies:** Zeni's answers show as real formatting: bold and italic text, headings, bullet and numbered lists, tables, quotes and code. Tables scroll sideways in narrow panels. Code blocks keep their **Open in script editor** button. Your own messages stay plain text.
+- Formatting is drawn safely: anything in a reply that looks like HTML is shown as text, and links show their address on hover instead of opening.
+- **Complete effects list:** asking Zeni which effects or plugins you have now returns every installed effect once, without repeats or a cut-off list. Zeni can also list only third-party plugins.
+- No white outline around buttons and tabs after clicking them. A ring in your accent color still shows where you are when you move around with the Tab key.
+
 # Version 1.0.4
 
 **Conversations**

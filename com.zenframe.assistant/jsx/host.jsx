@@ -1,4 +1,4 @@
-/* Zenframe Assistant host bridge, v1.0.4. ES3 for After Effects ExtendScript. */
+/* Zenframe Assistant host bridge, v1.0.5. ES3 for After Effects ExtendScript. */
 var ZenframeAssistant = (function () {
 
   /* ---------- JSON (ExtendScript has no reliable JSON global) ---------- */
@@ -319,13 +319,22 @@ var ZenframeAssistant = (function () {
       var l = layer(a.ref);
       return inspect(a.path && a.path.length ? prop(l, a.path) : l, Math.min(3, Math.max(1, a.depth || 2)), { n: 0 });
     }
+    // Installed effects, each listed once, in pages. After Effects reports some effects more than once.
     if (name === 'ae_search_effects') {
-      var found = [], q = String(a.query || '').toLowerCase();
-      for (i = 0; i < app.effects.length && found.length < 60; i++) {
-        var e = app.effects[i];
-        if ((e.displayName + ' ' + e.matchName).toLowerCase().indexOf(q) >= 0) found.push({ name: e.displayName, matchName: e.matchName, category: e.category });
+      var all = [], seen = {}, q = String(a.query || '').toLowerCase().replace(/^\s+|\s+$/g, '');
+      var thirdOnly = a.thirdPartyOnly === true, offset = Math.max(0, Math.floor(Number(a.offset) || 0)), PAGE = 100;
+      for (i = 0; i < app.effects.length; i++) {
+        var e = app.effects[i], mn = String(e.matchName);
+        if (seen.hasOwnProperty(mn)) continue;
+        seen[mn] = true;
+        if (q && (e.displayName + ' ' + mn + ' ' + e.category).toLowerCase().indexOf(q) < 0) continue;
+        var builtIn = /^(ADBE|ADOBE|AE\.ADBE|CC |APC |CS |ISL |VISINF|Mettle |CINEMA 4D|Cryptomatte)/i.test(mn);
+        if (thirdOnly && builtIn) continue;
+        all.push({ name: e.displayName, matchName: mn, category: e.category, thirdParty: !builtIn });
       }
-      return { effects: found };
+      var page = all.slice(offset, offset + PAGE), out = { total: all.length, offset: offset, effects: page };
+      if (offset + PAGE < all.length) out.nextOffset = offset + PAGE;
+      return out;
     }
     // Panel-only: check a batch and describe it for the approval card. Changes nothing.
     if (name === 'ae_validate_actions') {

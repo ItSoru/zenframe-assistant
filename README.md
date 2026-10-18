@@ -1,4 +1,4 @@
-# Zenframe Assistant 1.0.4
+# Zenframe Assistant 1.0.5
 
 Chat with **Zeni** inside After Effects. Use **Edit project** for supported changes (you approve each batch before it runs) or **Draft scripts** to review JSX before running it.
 
@@ -66,6 +66,7 @@ Then click **Save & check connection**. The status line tells you what is missin
 - **Draft scripts:** Zeni writes JSX into the Scripts tab. Nothing runs until you click **Run in After Effects**. If a script touches files, runs system commands, opens network connections, quits AE, or similar, you get a warning and must click **Run anyway**. The check is a helpful filter, not a guarantee, so read scripts before running them.
 - **Stop** ends the current reply and cancels any pending approval. It cannot reverse edits already applied or interrupt a script already running inside AE.
 - If you switch provider, model or mode, or reopen After Effects, the AI is given the conversation's recent messages so it can pick up where you left off.
+- Zeni's replies are formatted (bold text, lists, tables, code blocks). Your own messages are shown exactly as you typed them.
 - Enter sends. Shift+Enter adds a line.
 - Zeni reads composition metadata and properties, not rendered frames.
 

@@ -1,4 +1,4 @@
-/* Zenframe effort slider, v1.0.4.
+/* Zenframe effort slider, v1.0.5.
    A popover above the message box: level name, model picker, and a slider whose thumb follows the
    pointer continuously and springs onto the nearest stop on release. The top stop glows purple
    with twinkling sparkles.
