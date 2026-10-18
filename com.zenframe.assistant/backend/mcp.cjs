@@ -45,7 +45,7 @@ readline.createInterface({ input: process.stdin, crlfDelay: Infinity }).on('line
   try {
     let result;
     if (r.method === 'initialize') {
-      result = { protocolVersion: r.params.protocolVersion, capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'zenframe-aftereffects', version: '1.0.6' } };
+      result = { protocolVersion: r.params.protocolVersion, capabilities: { tools: { listChanged: false } }, serverInfo: { name: 'zenframe-aftereffects', version: '1.0.7' } };
     } else if (r.method === 'ping') {
       result = {};
     } else if (r.method === 'tools/list') {

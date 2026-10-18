@@ -1,4 +1,4 @@
-/* Zenframe Assistant wallpaper and glass look, v1.0.6.
+/* Zenframe Assistant wallpaper and glass look, v1.0.7.
    - The image is resized and stored on this computer only.
    - Readability is guaranteed by measuring the image: a dark layer is laid over it that is exactly
      strong enough that its brightest area ends up no lighter than #616161, and every place with text
@@ -131,11 +131,18 @@
     var root = document.documentElement, layer = $('wallpaper');
     var on = !!(state && state.image);
     root.classList.toggle('has-wallpaper', on);
+    if (!on) root.classList.remove('wp-bright');
     window.ZenframeAccentBase = on ? '#616161' : null; // accent text must stay readable on the brightest wallpaper area
     if (window.ZenframeAccent) window.ZenframeAccent.refresh();
     if (!on) { layer.style.backgroundImage = ''; renderControls(); return; }
     layer.style.backgroundImage = 'url("' + state.image + '")';
-    root.style.setProperty('--wp-scrim', String(state.scrim));
+    // Visibility 0 = the guaranteed-readable darkness; higher shows more of the image (less dark
+    // layer, lighter glass) and gives text a stronger dark halo instead.
+    var vis = visOf(state) / 100;
+    root.classList.toggle('wp-bright', vis > 0);
+    root.style.setProperty('--wp-scrim', String(Math.round(state.scrim * (1 - vis * 0.85) * 1000) / 1000));
+    root.style.setProperty('--wp-glass-a', String(Math.round((0.52 - vis * 0.27) * 1000) / 1000));
+    root.style.setProperty('--wp-glass-strong-a', String(Math.round((0.76 - vis * 0.16) * 1000) / 1000));
     root.style.setProperty('--wp-blur', blurOf(state) + 'px');
     renderControls();
   }
@@ -146,6 +153,9 @@
     $('wallpaperPreview').style.backgroundImage = on ? 'url("' + state.image + '")' : '';
     $('wallpaperPreview').classList.toggle('empty', !on);
     if (!on) return;
+    $('wallpaperVisibility').value = visOf(state);
+    $('wallpaperVisibilityValue').textContent = visOf(state) ? visOf(state) + '%' : 'Most readable';
+    $('wallpaperVisibilityHint').hidden = !visOf(state);
     $('wallpaperBlur').value = blurOf(state);
     $('wallpaperBlurValue').textContent = blurOf(state) + ' px';
     $('wallpaperMatch').checked = state.matchAccent !== false;
@@ -160,6 +170,7 @@
     });
     $('wallpaperPaletteRow').hidden = !(state.palette && state.palette.length);
   }
+  function visOf(s) { return s && s.visibility ? s.visibility : 0; }
   function blurOf(s) { return s && s.blur != null ? s.blur : 16; }
   function status(text) { $('wallpaperStatus').textContent = text || ''; }
 
@@ -171,13 +182,14 @@
     status('Reading the image…');
     readFile(file).then(function (r) {
       var match = !state || state.matchAccent !== false;
-      state = { image: r.image, scrim: r.scrim, blur: blurOf(state), palette: r.palette, matchAccent: match };
+      state = { image: r.image, scrim: r.scrim, blur: blurOf(state), visibility: visOf(state), palette: r.palette, matchAccent: match };
       if (match && r.palette.length && window.ZenframeAccent) window.ZenframeAccent.set(r.palette[0]);
       show();
       status((save(state) ? 'Wallpaper set.' : 'Wallpaper set for now, but it could not be saved.') + (r.palette.length ? '' : ' The image has no strong colors, so your accent stays the same.'));
     }).catch(function (e) { status(e.message); });
   };
   $('wallpaperRemove').onclick = function () { state = null; save(null); show(); status('Wallpaper removed.'); };
+  $('wallpaperVisibility').oninput = function () { state.visibility = Number(this.value); show(); save(state); };
   $('wallpaperBlur').oninput = function () { state.blur = Number(this.value); show(); save(state); };
   $('wallpaperMatch').onchange = function () {
     state.matchAccent = this.checked; save(state);

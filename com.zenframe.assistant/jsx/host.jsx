@@ -1,4 +1,4 @@
-/* Zenframe Assistant host bridge, v1.0.6. ES3 for After Effects ExtendScript. */
+/* Zenframe Assistant host bridge, v1.0.7. ES3 for After Effects ExtendScript. */
 var ZenframeAssistant = (function () {
 
   /* ---------- JSON (ExtendScript has no reliable JSON global) ---------- */

@@ -1,4 +1,4 @@
-# Zenframe Assistant 1.0.6
+# Zenframe Assistant 1.0.7
 
 Chat with **Zeni** inside After Effects. Use **Edit project** for supported changes (you approve each batch before it runs) or **Draft scripts** to review JSX before running it.
 
@@ -67,7 +67,7 @@ Then click **Save & check connection**. The status line tells you what is missin
 - **Stop** ends the current reply and cancels any pending approval. It cannot reverse edits already applied or interrupt a script already running inside AE.
 - If you switch provider, model or mode, or reopen After Effects, the AI is given the conversation's recent messages so it can pick up where you left off.
 - Zeni's replies are formatted (bold text, lists, tables, code blocks). Your own messages are shown exactly as you typed them.
-- **Wallpaper:** Settings > Wallpaper > Choose image. The panel turns to frosted glass over it, picks its accent color from the image, and darkens the image as much as needed to keep text readable. Adjust **Glass blur**, or click **Remove** for the normal look.
+- **Wallpaper:** Settings > Wallpaper > Choose image. The panel turns to frosted glass over it, picks its accent color from the image, and darkens the image as much as needed to keep text readable. Raise **Wallpaper visibility** to see more of the image, adjust **Glass blur**, or click **Remove** for the normal look.
 - Enter sends. Shift+Enter adds a line.
 - Zeni reads composition metadata and properties, not rendered frames.
 

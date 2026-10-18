@@ -1,3 +1,7 @@
+# Version 1.0.7
+
+- **Wallpaper visibility** slider: show more of your wallpaper. At 0 (Most readable) the image is darkened exactly enough to guarantee readable text; higher values show more of the image and give text a dark outline instead.
+
 # Version 1.0.6
 
 - **Wallpaper:** choose any image in Settings > Wallpaper to show behind the panel, with a liquid-glass look on the bars, message box, tabs and cards.

@@ -195,6 +195,9 @@
         <div id="wallpaperPalette" class="accent-presets" role="group" aria-label="Colors from the wallpaper"></div>
       </div>
       <label class="check"><input id="wallpaperMatch" type="checkbox" checked> Match the accent color to the wallpaper</label>
+      <label for="wallpaperVisibility" class="range-label">Wallpaper visibility <span id="wallpaperVisibilityValue">Most readable</span></label>
+      <input id="wallpaperVisibility" type="range" min="0" max="100" value="0">
+      <p id="wallpaperVisibilityHint" class="help" hidden>Text gets a dark outline to stay legible. On very bright images, lower this if text gets hard to read.</p>
       <label for="wallpaperBlur" class="range-label">Glass blur <span id="wallpaperBlurValue">16 px</span></label>
       <input id="wallpaperBlur" type="range" min="0" max="60" value="16">
     </div>
@@ -208,7 +211,7 @@
   </div>
   <button id="clearHistory" class="secondary">Delete all conversations</button>
   <p class="help">Deletes every conversation saved in this panel. To remove just one, close its tab.</p>
-  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.0.6</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
+  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.0.7</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
 </section>
 
 <footer><span><i></i> ZENFRAME</span><span>Unofficial · bring your own AI</span></footer>

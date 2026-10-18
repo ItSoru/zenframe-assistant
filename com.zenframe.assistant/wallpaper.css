@@ -1,4 +1,4 @@
-/* Zenframe Assistant 1.0.6: wallpaper with a liquid-glass look. Everything here applies only while a
+/* Zenframe Assistant 1.0.7: wallpaper with a liquid-glass look. Everything here applies only while a
    wallpaper is set (html.has-wallpaper); without one the panel looks exactly as before.
    Readability: wallpaper.js sets --wp-scrim so the brightest area of the image is darkened to at most
    the brightness of #616161, and every area with text is glass with a dark tint of about 50% on top,
@@ -15,12 +15,14 @@ html.has-wallpaper #wallpaper::after { content: ''; position: absolute; inset: 0
 html.has-wallpaper {
   --muted: #c4c2cc;
   --line: rgba(255, 255, 255, .13);
-  --glass: rgba(10, 10, 14, .52);
-  --glass-strong: rgba(10, 10, 14, .76);
+  --glass: rgba(10, 10, 14, var(--wp-glass-a, .52));
+  --glass-strong: rgba(10, 10, 14, var(--wp-glass-strong-a, .76));
   --glass-edge: rgba(255, 255, 255, .11);
   --glass-light: rgba(255, 255, 255, .16);
 }
 html.has-wallpaper body { background: transparent !important; text-shadow: 0 1px 2px rgba(0, 0, 0, .55); }
+/* When the wallpaper is shown brighter than the guaranteed level, text gets a dark halo to stay legible. */
+html.has-wallpaper.wp-bright body { text-shadow: 0 0 3px rgba(0, 0, 0, .95), 0 1px 6px rgba(0, 0, 0, .85), 0 0 12px rgba(0, 0, 0, .6); }
 html.has-wallpaper .primary, html.has-wallpaper .send, html.has-wallpaper .badge,
 html.has-wallpaper .mark, html.has-wallpaper .ef-pill-label { text-shadow: none; }
 
@@ -67,5 +69,5 @@ html.has-wallpaper ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .
 .wallpaper-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .wallpaper-buttons .secondary { padding: 8px 12px; }
 .range-label { display: flex; justify-content: space-between; margin: 12px 0 6px; font-size: 12px; }
-#wallpaperBlur { width: 100%; accent-color: var(--accent-fill); }
+#wallpaperBlur, #wallpaperVisibility { width: 100%; accent-color: var(--accent-fill); }
 #wallpaperPalette { margin: 6px 0 12px; }
