@@ -1,4 +1,4 @@
-/* Zenframe Markdown renderer, v1.1.0.
+/* Zenframe Markdown renderer, v1.2.0.
    Turns Zeni's replies into formatted text: headings, bold/italic, lists, tables, quotes, inline code
    and code blocks. It builds DOM nodes with textContent only and never uses innerHTML, so nothing in
    a reply can run code or load anything. Links are shown as text with their address on hover; the

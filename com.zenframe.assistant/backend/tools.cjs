@@ -10,4 +10,12 @@ const tools = [
  {name:'ae_run_script',description:'Run one of the user\'s installed scripts (path from ae_list_tools, kind scripts). Available only in Edit project mode. The user always sees an approval card first and may decline. It runs in one Undo group, but scripts can do anything, including things Undo cannot reverse, and some open their own windows. Say why you want to run it in reason.',inputSchema:{type:'object',properties:{path:{type:'string'},reason:{type:'string'}},required:['path','reason'],additionalProperties:false}},
  {name:'ae_stage_script',description:'Place a complete ExtendScript JSX script into the visible Scripts editor for user review. Never executes it. Use for script requests and for operations outside the structured edit tools. Avoid app.quit, file/network access, save or destructive changes unless specifically requested. No Markdown fences in code. The user will click Run.',inputSchema:{type:'object',properties:{title:{type:'string'},code:{type:'string'},explanation:{type:'string'}},required:['title','code','explanation'],additionalProperties:false}}
 ];
+// MCP tool annotations (shown to Claude Code and Codex). Read tools change nothing. The others change the
+// project, but only after Zenframe's own approval rules; none of them touch files or the internet.
+const READ_ONLY = { ae_get_context: 1, ae_inspect_layer: 1, ae_search_effects: 1, ae_list_tools: 1 };
+tools.forEach(t => {
+  t.annotations = READ_ONLY[t.name]
+    ? { readOnlyHint: true, destructiveHint: false, openWorldHint: false }
+    : { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
+});
 module.exports = tools;

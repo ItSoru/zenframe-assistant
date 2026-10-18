@@ -1,8 +1,8 @@
-/* Zenframe Assistant panel, v1.1.0. */
+/* Zenframe Assistant panel, v1.2.0. */
 (function () {
   'use strict';
 
-  var VERSION = '1.1.0';
+  var VERSION = '1.2.0';
   // Set this to your download page to show a "Check for updates" link in Settings.
   var UPDATE_URL = '';
   var MAX_CONVS = 20, MAX_MESSAGES = 80, PRIOR_MESSAGES = 16, MAX_SAVED_CHARS = 20000;
@@ -18,7 +18,7 @@
   var modelLists = {};
   var effort = null;
   // Effort levels per kind of provider (replaced by the backend's list when it loads).
-  var EFFORT_LEVELS = { claude: ['low', 'medium', 'high', 'xhigh', 'max'], openai: ['low', 'medium', 'high'] };
+  var EFFORT_LEVELS = { claude: ['low', 'medium', 'high', 'xhigh', 'max'], openai: ['low', 'medium', 'high'], codex: ['low', 'medium', 'high', 'xhigh'] };
   var EFFORT_LABELS = { low: 'Low', medium: 'Medium', high: 'High', xhigh: 'Extra', max: 'Max' };
   var CC_MODELS = ['opus', 'sonnet', 'haiku', 'fable', 'claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-1'];
   var nativeCEP = window.__adobe_cep__;
@@ -27,8 +27,21 @@
   /* ---------- Local storage (never holds API keys) ---------- */
   function readStore(k, fallback) { try { return JSON.parse(localStorage.getItem('zenframeAssistant.' + k)) || fallback; } catch (e) { return fallback; } }
   function store(k, v) { try { localStorage.setItem('zenframeAssistant.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  // Usage gauge: ask the runtime for the current provider's numbers (debounced).
+  var usageTimer = 0;
+  function refreshUsage() {
+    clearTimeout(usageTimer);
+    usageTimer = setTimeout(function () {
+      var u = window.ZenframeUsage;
+      if (!u) return;
+      var id = settings.provider || 'claude-code';
+      u.provider(id, id === 'claude-code' ? 'Claude Code' : id === 'codex' ? 'Codex' : (PRESETS[id] || {}).label || id);
+      if (runtime && runtime.usage) runtime.usage(settings).then(function (s) { u.update(s); }, function () {});
+    }, 150);
+  }
   function saveSettings() {
-    store('settings', { provider: settings.provider, claudePath: settings.claudePath || '', nodePath: settings.nodePath || '', authMode: settings.authMode, confirmEdits: settings.confirmEdits, models: settings.models, baseUrls: settings.baseUrls, freeOnly: settings.freeOnly, efforts: settings.efforts });
+    refreshUsage();
+    store('settings', { provider: settings.provider, claudePath: settings.claudePath || '', codexPath: settings.codexPath || '', nodePath: settings.nodePath || '', authMode: settings.authMode, confirmEdits: settings.confirmEdits, models: settings.models, baseUrls: settings.baseUrls, freeOnly: settings.freeOnly, efforts: settings.efforts });
   }
 
   /* ---------- Bridge to ExtendScript ---------- */
@@ -85,22 +98,39 @@
       else el.appendChild(document.createTextNode(part));
     });
   }
-  function messageElement(conv, role, text) {
+  // Attached files shown on a sent message (thumbnails only while the panel is open; names are saved).
+  function fileChips(files) {
+    var row = document.createElement('div'); row.className = 'msg-files';
+    files.forEach(function (f) {
+      var chip = document.createElement('div'); chip.className = 'attach-chip attach-' + (f.kind === 'image' ? 'image' : 'text');
+      var thumb = document.createElement('span'); thumb.className = 'attach-thumb'; thumb.setAttribute('aria-hidden', 'true');
+      if (f.preview) { var img = document.createElement('img'); img.src = f.preview; img.alt = ''; thumb.appendChild(img); }
+      else thumb.textContent = f.kind === 'image' ? 'IMG' : ((/\.([a-z0-9]{1,5})$/i.exec(f.name) || [0, 'TXT'])[1]).toUpperCase();
+      var meta = document.createElement('span'); meta.className = 'attach-meta';
+      var name = document.createElement('span'); name.className = 'attach-name'; name.textContent = f.name; name.title = f.name;
+      meta.appendChild(name); chip.appendChild(thumb); chip.appendChild(meta); row.appendChild(chip);
+    });
+    return row;
+  }
+  function messageElement(conv, role, text, files) {
     var wrapper = document.createElement('article'); wrapper.className = 'message ' + role;
     var author = document.createElement('div'); author.className = 'author';
     author.textContent = role === 'user' ? 'YOU' : role === 'error' ? 'CONNECTION / ERROR' : 'Zeni';
     var body = document.createElement('div'); body.className = 'body'; renderBody(body, text, role);
-    wrapper.appendChild(author); wrapper.appendChild(body);
+    wrapper.appendChild(author);
+    if (files && files.length) wrapper.appendChild(fileChips(files));
+    wrapper.appendChild(body);
     conv.el.appendChild(wrapper);
     return body;
   }
   // Adds a message to a conversation (saved), and keeps the welcome screen in sync.
-  function message(conv, role, text) {
+  function message(conv, role, text, files) {
     var record = { role: role, text: text };
+    if (files && files.length) record.files = files.map(function (f) { return { name: String(f.name), kind: f.kind === 'image' ? 'image' : 'text' }; });
     conv.messages.push(record);
     if (conv.messages.length > MAX_MESSAGES) conv.messages.splice(0, conv.messages.length - MAX_MESSAGES);
-    var body = messageElement(conv, role, text);
-    if (role === 'user' && !conv.customTitle && conv.title === 'New chat') { conv.title = titleFrom(text); renderTabs(); }
+    var body = messageElement(conv, role, text, files);
+    if (role === 'user' && !conv.customTitle && conv.title === 'New chat') { conv.title = titleFrom(text || (files && files[0] && files[0].name) || ''); renderTabs(); }
     if (conv.id === activeId) { $('welcome').hidden = true; scroll(); }
     persist();
     return { body: body, record: record };
@@ -133,7 +163,9 @@
         list: convs.map(function (c) {
           return { id: c.id, title: c.title, custom: c.customTitle, created: c.created, messages: (keep ? c.messages.slice(-keep) : []).map(function (m) {
             var text = String(m.text);
-            return { role: m.role, text: text.length > MAX_SAVED_CHARS ? text.slice(0, MAX_SAVED_CHARS) + '\n…[shortened when saved]' : text };
+            var saved = { role: m.role, text: text.length > MAX_SAVED_CHARS ? text.slice(0, MAX_SAVED_CHARS) + '\n…[shortened when saved]' : text };
+            if (m.files) saved.files = m.files.slice(0, 6);
+            return saved;
           }) };
         })
       };
@@ -158,8 +190,9 @@
     $('messages').appendChild(c.el);
     (data.messages || []).forEach(function (m) {
       if (!m || typeof m.text !== 'string') return;
-      c.messages.push({ role: m.role, text: m.text });
-      messageElement(c, m.role, m.text);
+      var files = Array.isArray(m.files) ? m.files.filter(function (f) { return f && typeof f.name === 'string'; }).slice(0, 6).map(function (f) { return { name: f.name, kind: f.kind === 'image' ? 'image' : 'text' }; }) : null;
+      c.messages.push(files && files.length ? { role: m.role, text: m.text, files: files } : { role: m.role, text: m.text });
+      messageElement(c, m.role, m.text, files);
     });
     return c;
   }
@@ -292,6 +325,7 @@
   function priorTranscript(c) {
     return c.messages.filter(function (m) { return m.role === 'user' || m.role === 'assistant'; }).slice(-PRIOR_MESSAGES).map(function (m) {
       var t = String(m.text); if (t.length > 600) t = t.slice(0, 600) + '…';
+      if (m.files && m.files.length) t += ' [attached: ' + m.files.map(function (f) { return f.name; }).join(', ') + ']';
       return (m.role === 'user' ? 'User: ' : 'Zeni: ') + t;
     }).join('\n');
   }
@@ -409,6 +443,8 @@
       }
     }
     if (e.type === 'notice') message(c, 'assistant', String(e.data));
+    if (e.type === 'limits' && window.ZenframeUsage) window.ZenframeUsage.update(e.data);
+    if (e.type === 'usage' && window.ZenframeUsage) window.ZenframeUsage.tokens(e.data);
     if (e.type === 'end') {
       if (openCard) finishCard(openCard.card, 'declined', 'Cancelled. Nothing was changed.');
       if (e.data.stopped) message(c, 'assistant', 'Stopped. Any project changes already applied remain in After Effects; use Undo to revert them.');
@@ -437,21 +473,25 @@
     return p ? p.label.replace(/ \(.*\)$/, '') : 'Provider';
   }
   function showProvider(refreshKeyStatus) {
-    var id = settings.provider, cc = id === 'claude-code', p = preset();
+    var id = settings.provider, cc = id === 'claude-code', codex = id === 'codex', p = preset();
     $('provider').value = id;
     $('authMode').value = settings.authMode === 'claude' ? 'claude' : 'apikey';
     $('claudeCodeGroup').hidden = !cc;
-    $('pathsGroup').hidden = !cc;
+    $('codexGroup').hidden = !codex;
+    $('pathsGroup').hidden = !(cc || codex);
+    $('claudePathRow').hidden = !cc;
+    $('codexPathRow').hidden = !codex;
     $('loginGroup').hidden = !(cc && settings.authMode === 'claude');
-    $('directGroup').hidden = cc;
-    var showKey = cc ? settings.authMode !== 'claude' : !!(p && (p.needsKey || p.optionalKey));
+    $('directGroup').hidden = cc || codex;
+    $('loadModels').hidden = codex; // Codex has no model list; pick its default or type a name
+    var showKey = codex ? false : cc ? settings.authMode !== 'claude' : !!(p && (p.needsKey || p.optionalKey));
     $('apiKeyGroup').hidden = !showKey;
     $('apiKeyLabel').textContent = shortName() + ' API key' + (p && p.optionalKey ? ' (optional)' : '');
     $('apiKey').placeholder = cc ? 'sk-ant-…' : (p && p.keyHint) || 'Paste your key';
     var url = cc ? 'console.anthropic.com' : p && p.keyUrl;
     $('keyHelp').textContent = (url ? 'Get a key at ' + url + '. ' : '') + 'Each key is encrypted for your Windows account and only sent to its own provider. It is never shown, logged, or sent anywhere else.';
     settings.models = settings.models || {}; settings.baseUrls = settings.baseUrls || {};
-    if (!cc && p) {
+    if (!cc && !codex && p) {
       $('baseUrl').value = (p.editableUrl && settings.baseUrls[id]) || p.baseUrl;
       $('baseUrl').readOnly = !p.editableUrl;
     }
@@ -488,6 +528,7 @@
     var add = function (value, text) { var o = document.createElement('option'); o.value = value; o.textContent = text; sel.appendChild(o); };
     // Claude Code can always fall back to its own default model.
     if (id === 'claude-code') add('', 'Default (Claude Code decides)');
+    else if (id === 'codex') add('', 'Default (Codex decides)');
     else if (!current) add('', list.length ? 'Choose a model…' : 'Click Load models first');
     if (current && list.indexOf(current) < 0) add(current, modelLabel(current) + ' (saved)');
     list.forEach(function (m) { add(m, modelLabel(m)); });
@@ -497,7 +538,7 @@
   }
   /* ---------- Effort ---------- */
   function effortLevels() {
-    var id = settings.provider, kind = id === 'claude-code' ? 'claude' : (PRESETS[id] || {}).effort || 'openai';
+    var id = settings.provider, kind = id === 'claude-code' ? 'claude' : id === 'codex' && EFFORT_LEVELS.codex ? 'codex' : (PRESETS[id] || {}).effort || 'openai';
     return (EFFORT_LEVELS[kind] || EFFORT_LEVELS.openai).map(function (k) { return { key: k, label: EFFORT_LABELS[k] || k }; });
   }
   function effortState() {
@@ -506,9 +547,9 @@
     var model = (settings.models || {})[id] || '';
     return {
       levels: levels, value: v, defaultIndex: 1,
-      model: model ? modelLabel(model) : (id === 'claude-code' ? 'Default model' : 'No model chosen'),
+      model: model ? modelLabel(model) : (id === 'claude-code' || id === 'codex' ? 'Default model' : 'No model chosen'),
       models: modelChoices(id), current: model,
-      topWarning: id === 'claude-code' && settings.authMode === 'claude' ? 'Uses your plan limits faster' : 'Slower, and uses noticeably more tokens'
+      topWarning: (id === 'claude-code' && settings.authMode === 'claude') || id === 'codex' ? 'Uses your plan limits faster' : 'Slower, and uses noticeably more tokens'
     };
   }
   function showModeNote() {
@@ -560,18 +601,26 @@
   /* ---------- Sending ---------- */
   async function send() {
     if (busy) return;
+    var attach = window.ZenframeAttach;
     var text = $('prompt').value.trim();
-    if (!text) return;
+    var hasFiles = !!(attach && attach.count());
+    if (!text && !hasFiles) return;
+    if (attach && attach.reading()) { $('prompt').focus(); return; } // files still loading; Send again in a moment
     var c = activeConv();
     if (!runtime) { message(c, 'error', 'Open this panel inside After Effects to chat with Zeni.'); return; }
     var prior = priorTranscript(c);
-    message(c, 'user', text);
+    var taken = hasFiles ? attach.take() : null;
+    message(c, 'user', text, taken ? taken.meta : null);
     $('prompt').value = '';
     c.reply = null;
     runningId = c.id;
     setBusy(true); refreshTabStates();
-    try { await runtime.send(text, $('mode').value, settings, c.id, prior); }
-    catch (e) { if (window.ZenframeZeni) window.ZenframeZeni.onEvent({ type: 'error', data: e.message }); message(c, 'error', e.message); runningId = null; setBusy(false); refreshTabStates(); }
+    try { await runtime.send(text, $('mode').value, settings, c.id, prior, taken ? taken.files : []); }
+    catch (e) {
+      if (window.ZenframeZeni) window.ZenframeZeni.onEvent({ type: 'error', data: e.message });
+      message(c, 'error', e.message); runningId = null; setBusy(false); refreshTabStates();
+      if (taken) attach.restore(taken); // nothing was sent, so the files go back in the box
+    }
   }
 
   function init() {
@@ -598,18 +647,24 @@
         if (backend.CLAUDE_CODE_MODELS) CC_MODELS = backend.CLAUDE_CODE_MODELS;
         var found = backend.findExecutables();
         settings.claudePath = settings.claudePath || found.claudePath;
+        settings.codexPath = settings.codexPath || found.codexPath || '';
         settings.nodePath = settings.nodePath || found.nodePath;
         runtime = new backend.Runtime({ callHost: host, onEvent: onEvent, onScript: stage, onConfirm: confirmEdits, openExtension: function (id) { nativeCEP.requestOpenExtension(id, ''); } });
+        if (window.ZenframeUsage) window.ZenframeUsage.onRefresh(refreshUsage);
+        refreshUsage();
         $('detectPaths').onclick = function () {
           var again = backend.findExecutables();
           $('claudePath').value = again.claudePath || $('claudePath').value;
+          $('codexPath').value = again.codexPath || $('codexPath').value;
           $('nodePath').value = again.nodePath || $('nodePath').value;
-          $('settingsStatus').textContent = again.claudePath && again.nodePath ? 'Found both. Click Save & check connection.' : 'Could not find everything. Enter the missing path, or install it first.';
+          var main = settings.provider === 'codex' ? again.codexPath : again.claudePath;
+          $('settingsStatus').textContent = main && again.nodePath ? 'Found both. Click Save & check connection.' : 'Could not find everything. Enter the missing path, or install it first.';
         };
       } catch (e) { message(activeConv(), 'error', 'Could not start the local bridge: ' + e.message); }
     }
     if (!runtime) $('detectPaths').onclick = function () { $('settingsStatus').textContent = 'Open the panel inside After Effects first.'; };
     $('claudePath').value = settings.claudePath || '';
+    $('codexPath').value = settings.codexPath || '';
     $('nodePath').value = settings.nodePath || '';
     effort = window.ZenframeEffort({
       pill: $('effortPill'), pop: $('effortPop'), state: effortState, label: modelLabel,
@@ -707,6 +762,7 @@
   $('confirmEdits').onchange = function () { setApproval($('confirmEdits').checked); };
   $('saveSettings').onclick = function () {
     settings.claudePath = $('claudePath').value.trim();
+    settings.codexPath = $('codexPath').value.trim();
     settings.nodePath = $('nodePath').value.trim();
     saveSettings(); check();
   };

@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="markdown.css">
 <link rel="stylesheet" href="wallpaper.css">
 <link rel="stylesheet" href="zeni.css">
+<link rel="stylesheet" href="extras.css">
 </head>
 <body>
 <div id="wallpaper" aria-hidden="true"></div>
@@ -27,6 +28,8 @@
 <nav aria-label="Workspace">
   <div class="tab-track"><button class="tab active" data-view="chat">Conversation</button><button class="tab" data-view="scripts">Scripts <span id="scriptBadge" class="badge" hidden>1</span></button></div>
   <span id="connection" class="connection">Checking…</span>
+  <button id="usageRing" type="button" class="usage-ring" aria-label="Usage. Show details"></button>
+  <div id="usagePop" class="usage-pop" role="dialog" aria-label="Usage" hidden></div>
 </nav>
 
 <div class="context"><span class="context-icon" aria-hidden="true">▣</span><span id="contextName">After Effects</span><button id="refreshContext" class="icon" title="Refresh composition context" aria-label="Refresh composition context">↻</button></div>
@@ -54,9 +57,12 @@
     <div class="compose-wrap">
       <div id="effortPop" class="effort-pop" hidden></div>
       <div class="composer">
+        <div id="attachTray" class="attach-tray" hidden></div>
         <label for="prompt" class="sr-only">Message Zeni</label>
         <textarea id="prompt" rows="3" placeholder="Ask Zeni. What are we making?" spellcheck="true"></textarea>
         <div class="compose-controls">
+          <button id="attachButton" type="button" class="attach-btn" aria-label="Attach files" title="Attach images or text files (or drop / paste them here)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.4 3.4 0 0 1 4.8 4.8l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/></svg></button>
+          <input id="attachInput" type="file" multiple hidden accept="image/png,image/jpeg,image/webp,image/gif,.txt,.md,.jsx,.jsxinc,.js,.ts,.json,.csv,.tsv,.xml,.html,.css,.srt,.vtt,.ass,.ssa,.lrc,.log,.yaml,.yml,.ini,.py,.expr">
           <label class="sr-only" for="mode">Working mode</label>
           <select id="mode"><option value="edit">Edit project</option><option value="script">Draft scripts</option></select>
           <button id="effortPill" type="button" class="effort-pill" aria-label="Effort and model"></button>
@@ -94,10 +100,12 @@
   <h3 class="connection-heading">AI provider</h3>
   <p class="help">Bring your own AI. Zenframe has no servers: requests go straight from your computer to the provider you choose, under your own account and its pricing or free tier.</p>
   <p class="best-with"><span class="best-check" aria-hidden="true">✓</span>Tested and works best with <strong>Claude Code</strong>.</p>
+  <div id="usageCard" class="usage-card" aria-live="polite"></div>
 
   <label for="provider">Provider</label>
   <select id="provider" class="field">
     <option value="claude-code">Claude Code (installed on this PC)</option>
+    <option value="codex">Codex (ChatGPT plan, installed on this PC)</option>
     <option value="anthropic">Anthropic API</option>
     <option value="openai">OpenAI</option>
     <option value="groq">Groq (free tier)</option>
@@ -116,6 +124,10 @@
     <div id="loginGroup" hidden>
       <p class="help">Sign in with Claude Code itself: open Command Prompt and run <code>claude auth login</code>, then finish the sign-in in your browser. Zenframe never sees or stores your login.</p>
     </div>
+  </div>
+
+  <div id="codexGroup" hidden>
+    <p class="help">Codex runs on your ChatGPT plan (Plus, Pro or Team), so no API key is needed. Install it once with <code>npm install -g @openai/codex</code>, then sign in: open Command Prompt, run <code>codex login</code> and choose <strong>Sign in with ChatGPT</strong>. Zenframe never sees or stores your login.</p>
   </div>
 
   <div id="apiKeyGroup">
@@ -147,8 +159,14 @@
   </div>
 
   <div id="pathsGroup">
-    <label for="claudePath">Claude Code executable</label>
-    <input id="claudePath" spellcheck="false">
+    <div id="claudePathRow">
+      <label for="claudePath">Claude Code executable</label>
+      <input id="claudePath" spellcheck="false">
+    </div>
+    <div id="codexPathRow" hidden>
+      <label for="codexPath">Codex executable (codex.exe or codex.js)</label>
+      <input id="codexPath" spellcheck="false">
+    </div>
     <label for="nodePath">Node.js executable</label>
     <input id="nodePath" spellcheck="false">
     <div class="row-buttons">
@@ -216,12 +234,12 @@
 
   <div class="settings-note">
     <strong>Local panel. Your own AI.</strong>
-    <p>Prompts and the project details Zeni reads (comp names, layer names, properties) are sent to the AI provider you chose to generate replies. Media files are not uploaded. Zenframe has no servers and collects no analytics.</p>
+    <p>Prompts and the project details Zeni reads (comp names, layer names, properties) are sent to the AI provider you chose to generate replies, along with any files you attach. Nothing else is uploaded. Zenframe has no servers and collects no analytics.</p>
     <p>Zenframe is an independent product. It is not made, endorsed or supported by Adobe or by any AI provider.</p>
   </div>
   <button id="clearHistory" class="secondary">Delete all conversations</button>
   <p class="help">Deletes every conversation saved in this panel. To remove just one, close its tab.</p>
-  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.1.0</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
+  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.2.0</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
 </section>
 
 <footer><span><i></i> ZENFRAME</span><span>Unofficial · bring your own AI</span></footer>
@@ -232,6 +250,8 @@
 <script src="markdown.js"></script>
 <script src="zeni-sprites.js"></script>
 <script src="zeni.js"></script>
+<script src="attach.js"></script>
+<script src="usage.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

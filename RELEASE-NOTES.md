@@ -1,3 +1,13 @@
+# Version 1.2.0
+
+- **New provider: Codex** (second in the list). Runs Zeni on your ChatGPT plan through the Codex CLI on your PC, no API key needed, with the same After Effects tools, approval cards, effort levels and image attachments. Codex keeps its read-only sandbox, web search is off, and it uses your ChatGPT sign-in even if an OpenAI API key is set on the computer. If your Codex version blocks tools from other apps, Zeni says so instead of failing silently.
+
+- **Attach files to a message:** paperclip button, drag and drop onto the message box, or paste an image. Files wait in the box (with thumbnails, name, size and ×) until you press Send; nothing is sent when you add them. Images and text files (scripts, expressions, JSON, CSV, subtitles, notes), up to 6 per message. Works with every provider, including Claude Code. Large images are resized to 1568 px. Images are sent once; later messages only mention them, so they do not keep costing tokens.
+- **Usage gauge:** a small ring next to the connection status shows how much is left, turning amber when low and red at the limit. Click it for a card with each limit, when it resets, and the tokens this session used. The same card is in Settings under AI provider. Claude Code plan limits, OpenRouter credits, rate limits from Anthropic, OpenAI, Groq and compatible services, unlimited for Ollama.
+- File chips stay clear of Zeni's legs, and the chat no longer slides sideways when something scrolls into view.
+- Clearer message when a model cannot read images.
+- When Claude Code only reports that you are within your plan limits (it shares exact percentages only near a limit), the gauge shows a full ring with a check and explains why. Session token counts include cached tokens.
+
 # Version 1.1.0
 
 - Zeni is about a third larger and drawn from higher-resolution sprites, so he stays sharp while sitting and while you drag him.
@@ -10,8 +20,6 @@
 - Accent recoloring runs locally from embedded PNG data, changes his hoodie, hair streak, eyes, headphones and shoes to your accent color while keeping skin, black hair, the outline and white areas as drawn, preserves source lightness, caches colors and falls back to originals.
 - Added a saved Show Zeni setting near Wallpaper, on by default. Turning it off restores the original layout and visible activity line.
 - Existing CSP, approval controls, runtime safeguards and installer layout remain in place. No Claude Code binary was changed or added.
-
-Validation details for this build are recorded in VALIDATION-1.1.0.md.
 
 # Version 1.0.9
 

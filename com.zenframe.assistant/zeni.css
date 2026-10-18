@@ -1,4 +1,4 @@
-/* Zenframe Assistant 1.1.0: Zeni's local sprite companion. */
+/* Zenframe Assistant 1.2.0: Zeni's local sprite companion. */
 html.zeni-enabled #prompt { padding-right: calc(var(--zeni-w, 130px) - 18px); }
 html.zeni-enabled #messages { padding-bottom: calc(var(--zeni-h, 127px) + 9px); scroll-padding-bottom: calc(var(--zeni-h, 127px) + 9px); }
 html.zeni-enabled #activity {

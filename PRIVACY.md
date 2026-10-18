@@ -4,14 +4,17 @@ Zenframe Assistant runs on your computer. It has no servers of its own and colle
 
 ## What is sent, and to whom
 
-When you send Zeni a message, Zenframe sends it to **the AI provider you chose in Settings**: Groq, OpenRouter, Google Gemini, Anthropic, OpenAI, a custom service you entered, Claude Code (which sends it to Anthropic), or Ollama (which stays on your computer). While working, Zeni can read and send to that provider:
+When you send Zeni a message, Zenframe sends it to **the AI provider you chose in Settings**: Groq, OpenRouter, Google Gemini, Anthropic, OpenAI, a custom service you entered, Claude Code (which sends it to Anthropic), Codex (which sends it to OpenAI under your ChatGPT plan), or Ollama (which stays on your computer). While working, Zeni can read and send to that provider:
 
 * your messages,
 * project and composition names, layer names, timings and settings,
 * property values, expressions and the text of text layers,
-* the names of installed effects.
+* the names of installed effects, panels, scripts and presets,
+* **files you attach to a message** (images and text files you pick, drop or paste). They are sent only with that message and are not saved by Zenframe; only their names are kept in the conversation.
 
-Zeni does **not** upload your footage, images, audio or rendered frames.
+Zeni does **not** upload your footage, audio or rendered frames on its own. Nothing is attached unless you attach it.
+
+**Usage gauge:** for OpenRouter, Zenframe asks OpenRouter for your key's usage with the same key. Other providers' limits come from the replies they already send. Nothing is sent anywhere else.
 
 How the provider handles this data is covered by your own agreement with that provider and its privacy policy. Some free tiers may use prompts to improve their models; check the provider's terms if your projects are confidential. With Ollama, nothing leaves your computer.
 

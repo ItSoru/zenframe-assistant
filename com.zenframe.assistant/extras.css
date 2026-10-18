@@ -1,0 +1,128 @@
+/* Zenframe Assistant 1.2.0: file attachments and the usage gauge. */
+
+/* ---------- Attach button ---------- */
+.attach-btn {
+  display: inline-grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; padding: 0;
+  border: 1px solid #2c2933; border-radius: 999px; background: #121116; color: var(--muted); position: relative;
+  transition: color .18s, border-color .18s, background .18s, transform .18s cubic-bezier(.2, .9, .3, 1.2);
+}
+.attach-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; transition: transform .25s cubic-bezier(.2, .9, .3, 1.3); }
+.attach-btn:hover:not(:disabled) { color: var(--text); border-color: #3d3747; background: #19171e; }
+.attach-btn:hover:not(:disabled) svg { transform: rotate(-12deg) scale(1.06); }
+.attach-btn:active:not(:disabled) { transform: scale(.94); }
+.attach-btn.has-files { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); }
+
+/* ---------- Files waiting in the message box ---------- */
+.attach-tray { padding: 10px 11px 0; }
+.attach-row { display: flex; gap: 7px; overflow-x: auto; overflow-y: hidden; padding-bottom: 3px; scrollbar-width: thin; }
+.attach-row::-webkit-scrollbar { height: 4px; } .attach-row::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .15); border-radius: 4px; }
+/* Zeni's legs hang over the top-right corner of the box; files wrap before reaching them. */
+html.zeni-enabled .attach-tray { padding-right: calc(var(--zeni-w, 130px) - 18px); }
+.attach-chip {
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0; max-width: 210px; padding: 5px 5px 5px 5px;
+  border: 1px solid #353140; border-radius: 12px; background: linear-gradient(160deg, #24212b, #1b1a20);
+  animation: attach-in .32s cubic-bezier(.2, .9, .3, 1.15);
+}
+.attach-chip:hover { border-color: rgba(var(--accent-rgb), .45); }
+@keyframes attach-in { from { opacity: 0; transform: translateY(6px) scale(.94); } to { opacity: 1; transform: none; } }
+.attach-thumb {
+  display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; overflow: hidden; border-radius: 8px;
+  background: rgba(var(--accent-rgb), .14); color: var(--accent); font: 700 9px/1 Consolas, monospace; letter-spacing: .4px;
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .25);
+}
+.attach-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.attach-meta { display: flex; flex-direction: column; min-width: 0; max-width: 128px; line-height: 1.25; }
+.attach-name { font-size: 11.5px; color: var(--text); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.attach-size { font-size: 10px; color: var(--muted); }
+.attach-remove {
+  width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; color: var(--muted); font-size: 15px; line-height: 1; padding: 0;
+}
+.attach-remove:hover:not(:disabled) { color: var(--text); background: rgba(255, 255, 255, .08); }
+.attach-loading .attach-thumb { position: relative; }
+.attach-loading .attach-thumb::after {
+  content: ''; position: absolute; inset: 9px; border-radius: 50%; border: 2px solid rgba(var(--accent-rgb), .25); border-top-color: var(--accent);
+  animation: attach-spin .8s linear infinite;
+}
+@keyframes attach-spin { to { transform: rotate(360deg); } }
+.attach-note { font-size: 11px; line-height: 1.45; color: var(--error); padding: 4px 2px 0; }
+
+/* Drop zone */
+.composer { position: relative; }
+.composer.drop-over { border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .18), 0 10px 34px rgba(0, 0, 0, .35) !important; }
+.composer.drop-over::after {
+  content: 'Drop to attach'; position: absolute; inset: 6px; display: grid; place-items: center; border-radius: 9px; z-index: 3;
+  border: 1.5px dashed rgba(var(--accent-rgb), .7); background: rgba(14, 13, 18, .82); color: var(--accent);
+  font-size: 13px; font-weight: 600; letter-spacing: .3px; pointer-events: none;
+}
+
+/* Files shown on a sent message */
+.msg-files { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.msg-files .attach-chip { animation: none; padding: 4px 9px 4px 4px; background: rgba(255, 255, 255, .03); }
+.msg-files .attach-thumb { width: 28px; height: 28px; }
+.msg-files .attach-meta { max-width: 170px; }
+
+/* ---------- Usage ring next to the connection status ---------- */
+nav { position: relative; }
+.usage-ring {
+  display: inline-grid; place-items: center; width: 26px; height: 26px; margin-left: 6px; padding: 0; flex-shrink: 0;
+  border-radius: 50%; color: var(--accent);
+}
+.usage-ring:hover:not(:disabled) { background: rgba(255, 255, 255, .06); }
+.usage-gauge { display: block; overflow: visible; }
+.usage-track { fill: none; stroke: rgba(255, 255, 255, .1); }
+.usage-arc { fill: none; stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset .8s cubic-bezier(.2, .9, .3, 1), stroke .3s; }
+.usage-arc-unknown { stroke: rgba(255, 255, 255, .28); stroke-linecap: butt; }
+.usage-warn .usage-arc { stroke: #ffc46b; }
+.usage-limit .usage-arc { stroke: #ff6b7a; }
+.usage-ring.usage-limit { animation: usage-pulse 1.8s ease-in-out infinite; }
+@keyframes usage-pulse { 50% { box-shadow: 0 0 0 4px rgba(255, 107, 122, .18); } }
+.usage-ring .usage-arc { filter: drop-shadow(0 0 3px rgba(var(--accent-rgb), .45)); }
+
+/* Details card (popover and Settings) */
+.usage-pop {
+  position: absolute; right: 10px; top: calc(100% + 6px); z-index: 40; width: 270px; max-width: calc(100vw - 20px);
+  border: 1px solid #2f2d34; border-radius: 20px; background: #232227;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .02);
+  opacity: 0; transform: translateY(-6px) scale(.97); transform-origin: 90% 0;
+  transition: opacity .18s ease, transform .3s cubic-bezier(.2, .9, .3, 1.15);
+}
+.usage-pop.usage-open { opacity: 1; transform: none; }
+.usage-pop-inner { padding: 15px 15px 13px; }
+.usage-card { margin: 14px 0 4px; padding: 15px; border: 1px solid #2f2d34; border-radius: 16px; background: linear-gradient(160deg, #1f1e24, #19181d); }
+.usage-head { display: flex; align-items: center; gap: 13px; }
+.usage-big { position: relative; width: 54px; height: 54px; flex-shrink: 0; }
+.usage-card .usage-big { width: 58px; height: 58px; }
+.usage-big .usage-arc { filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), .4)); }
+.usage-pct { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -.3px; }
+.usage-local .usage-pct { font-size: 20px; font-weight: 500; color: var(--accent); }
+.usage-status-only .usage-pct { font-size: 20px; color: var(--accent); }
+.usage-status-only.usage-warn .usage-pct { color: #ffc46b; }
+.usage-titles { min-width: 0; }
+.usage-eyebrow { font-size: 9px; letter-spacing: 1.5px; color: var(--accent); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usage-title { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.3; margin-top: 2px; }
+.usage-warn .usage-title { color: #ffc46b; } .usage-limit .usage-title { color: #ff8a96; }
+.usage-items { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.usage-item-top { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px; }
+.usage-item-label { color: var(--text); }
+.usage-item-value { color: var(--muted); text-align: right; }
+.usage-bar { height: 5px; margin-top: 5px; border-radius: 99px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+.usage-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, rgba(var(--accent-rgb), .65), var(--accent)); transition: width .8s cubic-bezier(.2, .9, .3, 1); }
+.usage-bar span.low { background: linear-gradient(90deg, #ff6b7a, #ffc46b); }
+.usage-reset { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.usage-session { display: flex; justify-content: space-between; gap: 8px; margin-top: 13px; padding-top: 11px; border-top: 1px solid rgba(255, 255, 255, .07); font-size: 11px; color: var(--muted); }
+.usage-session-value { color: var(--text); }
+.usage-note { margin: 9px 0 0; font-size: 10.5px; line-height: 1.5; color: var(--muted); }
+.usage-refresh { margin-top: 10px; padding: 4px 9px; border-radius: 8px; font-size: 11px; color: var(--accent); }
+.usage-refresh:hover:not(:disabled) { background: rgba(var(--accent-rgb), .1); }
+
+/* Glass look over a wallpaper */
+html.has-wallpaper .usage-pop, html.has-wallpaper .usage-card, html.has-wallpaper .attach-btn, html.has-wallpaper .attach-chip {
+  background: var(--glass-strong) !important; -webkit-backdrop-filter: blur(calc(var(--wp-blur, 16px) + 6px)) saturate(150%);
+  backdrop-filter: blur(calc(var(--wp-blur, 16px) + 6px)) saturate(150%); border-color: var(--glass-edge) !important;
+}
+html.has-wallpaper .composer.drop-over::after { background: rgba(10, 10, 14, .86); }
+
+@media (prefers-reduced-motion: reduce) {
+  .attach-chip, .usage-ring.usage-limit, .attach-loading .attach-thumb::after { animation: none !important; }
+  .usage-arc, .usage-bar span, .usage-pop { transition: none !important; }
+}

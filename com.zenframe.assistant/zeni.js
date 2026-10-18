@@ -1,4 +1,4 @@
-/* Zenframe Assistant 1.1.0. Local PNG companion; no network or project access. */
+/* Zenframe Assistant 1.2.0. Local PNG companion; no network or project access. */
 (function () {
   'use strict';
   var pack = window.ZenframeZeniSprites, composer = document.querySelector('.composer');

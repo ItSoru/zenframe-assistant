@@ -10,7 +10,9 @@ const { URL } = require('url');
 // OpenAI-style: reasoning_effort (OpenRouter: reasoning.effort).
 const EFFORT_LEVELS = {
   claude: ['low', 'medium', 'high', 'xhigh', 'max'],
-  openai: ['low', 'medium', 'high']
+  openai: ['low', 'medium', 'high'],
+  // Codex CLI: model_reasoning_effort
+  codex: ['low', 'medium', 'high', 'xhigh']
 };
 
 // Models offered for Claude Code when no Anthropic key is available to fetch the live list.
@@ -58,7 +60,7 @@ function request(method, url, { headers = {}, body, timeoutMs = 120000, onReques
       res.on('end', () => {
         let json = null;
         try { json = data ? JSON.parse(data) : null; } catch (e) {}
-        resolve({ status: res.statusCode, json, text: data });
+        resolve({ status: res.statusCode, json, text: data, headers: res.headers || {} });
       });
     });
     req.setTimeout(timeoutMs, () => req.destroy(new Error('The AI provider did not respond in time.')));
@@ -74,6 +76,7 @@ function providerError(preset, res) {
   if (res.status === 401 || res.status === 403) return new Error(preset.label + ' rejected the API key. Check it and save it again. (' + detail + ')');
   if (res.status === 429) return new Error(preset.label + ' rate limit reached. Free tiers have tight limits: wait a minute, or pick another model. (' + detail + ')');
   if (res.status === 404) return new Error(preset.label + ' could not find that model or address. Load models again and pick one from the list. (' + detail + ')');
+  if (res.status === 400 && /image|vision|multimodal|image_url|content type/i.test(detail)) return new Error('This model cannot read images. Pick a model with vision, or remove the image and send again. (' + detail + ')');
   if (/tool|function/i.test(detail)) return new Error('This model does not seem to support tool calling, which Zeni needs. Pick another model. (' + detail + ')');
   return new Error(preset.label + ' error ' + res.status + ': ' + detail);
 }
@@ -81,6 +84,65 @@ function providerError(preset, res) {
 function authHeaders(preset, key) {
   if (preset.kind === 'anthropic') return { 'x-api-key': key, 'anthropic-version': '2023-06-01' };
   return Object.assign(key ? { Authorization: 'Bearer ' + key } : {}, preset.extraHeaders || {});
+}
+
+/* ---------- Usage limits ---------- */
+// Rate-limit headers the provider sends with every reply (Anthropic, OpenAI, Groq, OpenRouter and most
+// OpenAI-compatible servers). Returns null when the provider sends none.
+function num(v) { const n = Number(v); return v !== undefined && v !== null && v !== '' && isFinite(n) ? n : null; }
+// "1m30s", "6m0s", "12ms", "2.5s" (OpenAI/Groq) or an ISO date (Anthropic) -> milliseconds from now.
+function resetIn(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const t = Date.parse(s); return isFinite(t) ? Math.max(0, t - Date.now()) : null; }
+  let ms = 0, matched = false;
+  s.replace(/(\d+(?:\.\d+)?)(ms|h|m|s)/g, (all, n, unit) => { matched = true; ms += Number(n) * (unit === 'h' ? 3600000 : unit === 'm' ? 60000 : unit === 's' ? 1000 : 1); return all; });
+  if (matched) return ms;
+  const secs = num(s);
+  return secs === null ? null : secs * 1000;
+}
+function readRateHeaders(preset, headers) {
+  headers = headers || {};
+  const pick = (kind) => {
+    const p = preset.kind === 'anthropic' ? 'anthropic-ratelimit-' + kind + '-' : 'x-ratelimit-';
+    const suffix = preset.kind === 'anthropic' ? '' : '-' + kind;
+    const limit = num(headers[p + 'limit' + suffix]), remaining = num(headers[p + 'remaining' + suffix]);
+    if (limit === null || remaining === null || limit <= 0) return null;
+    return { limit, remaining, resetMs: resetIn(headers[p + 'reset' + suffix]) };
+  };
+  const requests = pick('requests'), tokens = pick('tokens');
+  return requests || tokens ? { requests, tokens } : null;
+}
+// OpenRouter reports the key's spending limit and usage in dollars.
+async function openRouterKey(baseUrl, key) {
+  const res = await request('GET', baseUrl + '/key', { headers: { Authorization: 'Bearer ' + key }, timeoutMs: 15000 });
+  if (res.status !== 200 || !res.json || !res.json.data) return null;
+  return res.json.data;
+}
+
+/* ---------- Attachments ---------- */
+// The user's message with any images, in the provider's format. Text files are already in the text.
+function userContent(preset, text, images) {
+  if (!images || !images.length) return text;
+  if (preset.kind === 'anthropic') {
+    return images.map(i => ({ type: 'image', source: { type: 'base64', media_type: i.mime, data: i.data } })).concat([{ type: 'text', text }]);
+  }
+  return [{ type: 'text', text }].concat(images.map(i => ({ type: 'image_url', image_url: { url: 'data:' + i.mime + ';base64,' + i.data } })));
+}
+// After a reply, images are swapped for a short note so they are not sent again with every later message.
+function forgetImages(message) {
+  if (!message || !Array.isArray(message.content)) return;
+  const names = [];
+  message.content = message.content.filter(b => {
+    const img = b && (b.type === 'image' || b.type === 'image_url');
+    if (img) names.push(b._name || 'image');
+    return !img;
+  }).map(b => { if (b && b._name) delete b._name; return b; });
+  if (!names.length) return;
+  const note = '[The user attached ' + names.length + ' image' + (names.length > 1 ? 's' : '') + ' earlier; you already saw ' + (names.length > 1 ? 'them' : 'it') + '.]';
+  const textBlock = message.content.find(b => b.type === 'text');
+  if (textBlock) textBlock.text += '\n' + note; else message.content.push({ type: 'text', text: note });
+  if (message.content.length === 1 && message.content[0].type === 'text') message.content = message.content[0].text;
 }
 
 /* ---------- Model lists ---------- */
@@ -144,7 +206,8 @@ async function chat({ preset, baseUrl, key, model, system, history, tools, onReq
       assistant: { role: 'assistant', content },
       text: content.filter(b => b.type === 'text').map(b => b.text).join('\n'),
       calls: content.filter(b => b.type === 'tool_use').map(b => ({ id: b.id, name: b.name, args: b.input || {} })),
-      usage: res.json.usage ? { input: res.json.usage.input_tokens, output: res.json.usage.output_tokens } : null
+      usage: res.json.usage ? { input: (res.json.usage.input_tokens || 0) + (res.json.usage.cache_read_input_tokens || 0) + (res.json.usage.cache_creation_input_tokens || 0), output: res.json.usage.output_tokens || 0 } : null,
+      limits: readRateHeaders(preset, res.headers)
     };
   }
   const body = { model, messages: [{ role: 'system', content: system }].concat(history), tools, tool_choice: 'auto' };
@@ -161,7 +224,8 @@ async function chat({ preset, baseUrl, key, model, system, history, tools, onReq
     assistant,
     text: typeof msg.content === 'string' ? msg.content : '',
     calls,
-    usage: res.json.usage ? { input: res.json.usage.prompt_tokens, output: res.json.usage.completion_tokens } : null
+    usage: res.json.usage ? { input: res.json.usage.prompt_tokens, output: res.json.usage.completion_tokens } : null,
+    limits: readRateHeaders(preset, res.headers)
   };
 }
 
@@ -207,6 +271,7 @@ async function runAgent({ preset, baseUrl, key, model, system, definitions, hist
     const turn = await chatWithEffort({ preset, baseUrl, key, model, system, history, tools, onRequest }, effort, effortCache, emit);
     history.push(turn.assistant);
     if (turn.usage) emit('usage', turn.usage);
+    if (turn.limits) emit('rate', turn.limits);
     if (turn.text && turn.text.trim()) { shown = shown ? shown + '\n\n' + turn.text.trim() : turn.text.trim(); emit('text', shown); }
     if (!turn.calls.length) return;
     const anthropicResults = [];
@@ -231,4 +296,4 @@ async function runAgent({ preset, baseUrl, key, model, system, definitions, hist
   emit('notice', 'Zeni stopped after ' + MAX_STEPS + ' steps to avoid looping. Ask again to continue.');
 }
 
-module.exports = { PRESETS, EFFORT_LEVELS, CLAUDE_CODE_MODELS, checkBaseUrl, listModels, runAgent, toolsFor, cleanSchema, maxTokensFor };
+module.exports = { PRESETS, EFFORT_LEVELS, CLAUDE_CODE_MODELS, checkBaseUrl, listModels, runAgent, toolsFor, cleanSchema, maxTokensFor, readRateHeaders, resetIn, openRouterKey, userContent, forgetImages };

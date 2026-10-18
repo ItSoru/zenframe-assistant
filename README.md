@@ -1,12 +1,17 @@
-# Zenframe Assistant 1.1.0
+# Zenframe Assistant 1.2.0
 
-## Zeni companion (1.1.0)
+## Zeni companion
 
 Zeni sits beside the message box and changes pose with the assistant's activity. Click him to wave, or drag him to pick him up and let go to drop him. He stays wherever you drop him; double-click him to send him back to his seat. His hoodie, hair streak, eyes, headphones and shoes follow your accent color. Settings → Zeni → **Size** sets how big he is. Settings → Zeni → **Show Zeni on the message box** turns the companion off and restores the prior layout; the preference stays on this computer. System reduced-motion preferences disable swing, breathing and decorative transitions.
 
-The thought bubble mirrors the activity status; long text is shortened visually, while the original status remains available to screen readers. The sprites adapt to the accent locally without sending images or settings anywhere. Hair, face, skin, outlines and white shoe sections remain unchanged. The eight PNG poses use a common seat anchor so changing state keeps their seating position stable.
+The thought bubble mirrors the activity status; long text is shortened visually, while the original status remains available to screen readers. The sprites adapt to the accent locally without sending images or settings anywhere. Skin, black hair, outlines and white shoe sections remain unchanged. The eight PNG poses use a common seat anchor so changing state keeps their seating position stable.
 
-This remains an unsigned Windows CEP ZIP. See VALIDATION-1.1.0.md for the checks actually performed on this release.
+## New in 1.2.0
+
+- **Attach files:** click the paperclip in the message box, drag files onto it, or paste an image. Files wait in the box until you press Send, and you can remove any of them with ×. Zeni reads images (PNG, JPG, WebP, GIF, such as a reference frame or a screenshot of your comp) and text files (scripts, expressions, JSON, CSV, subtitles, notes). Up to 6 files per message. Images need a model with vision; most Claude, GPT and Gemini models have it.
+- **Usage gauge:** the small ring next to the connection status shows how much of your limit is left. Click it for details; the same card is in Settings under AI provider. What it shows depends on the provider (see below).
+
+This remains an unsigned Windows CEP ZIP.
 
 
 Chat with **Zeni** inside After Effects. Use **Edit project** for supported changes (you approve each batch before it runs) or **Draft scripts** to review JSX before running it.
@@ -34,8 +39,11 @@ Chat with **Zeni** inside After Effects. Use **Edit project** for supported chan
 | **OpenAI** | Paid per use | Key from platform.openai.com/api-keys |
 | **Custom** | Depends | Any OpenAI-compatible service (https, or http on localhost) |
 | **Claude Code** | Your Claude plan or Anthropic key | Claude Code + Node.js 18 or later installed |
+| **Codex** | Your ChatGPT plan (Plus, Pro or Team), no API key | Codex CLI (`npm install -g @openai/codex`), signed in with `codex login`, + Node.js 18 or later |
 
 Free tiers and model lists change often; check each provider's site for current limits.
+
+**Codex note:** some Codex versions block tools from other apps when run this way ("user cancelled MCP tool call"). Zeni tells you if that happens; updating Codex is the first thing to try. Zenframe keeps Codex's read-only sandbox on and does not let it browse the web.
 
 **Model quality matters.** Zeni needs a model that supports *tool calling*. Larger models (Claude, GPT-class, large Llama/Qwen models) handle After Effects edits and ExtendScript far better than small free ones. Keep **Ask before edits** on, especially with free models.
 
@@ -79,11 +87,12 @@ Then click **Save & check connection**. The status line tells you what is missin
 - **Your installed tools:** ask Zeni what panels, scripts or presets you have, to open a panel, to run one of your scripts or to apply a preset. Running a script always asks you first (**Run** / **Decline**), even with Auto-apply on; presets go through the normal edit approval. Zeni can open other panels but can't operate the controls inside them.
 - **Wallpaper:** Settings > Wallpaper > Choose image. The panel turns to frosted glass over it, picks its accent color from the image, and darkens the image as much as needed to keep text readable. Raise **Wallpaper visibility** to see more of the image, adjust **Glass blur**, or click **Remove** for the normal look.
 - Enter sends. Shift+Enter adds a line.
-- Zeni reads composition metadata and properties, not rendered frames.
+- Zeni reads composition metadata and properties. It cannot see your viewer by itself, but you can attach a screenshot or a rendered frame.
+- **Usage gauge, per provider:** Claude Code (signed in with your Claude plan) shows your plan limits, such as the 5-hour and weekly limits, as Claude Code reports them. OpenRouter shows the dollars left on your key. Anthropic API, OpenAI, Groq and most compatible services show their short-term rate limits, which refill on their own; they are not your account balance. Ollama runs on your PC with no limits. Providers that report nothing (such as Gemini) show "Not reported", plus the tokens this session has used.
 
 ## Privacy
 
-See **PRIVACY.md**. In short: prompts and the project details Zeni reads are sent to the AI provider you chose. Media files are not uploaded. Zenframe has no servers and collects no analytics.
+See **PRIVACY.md**. In short: prompts, the project details Zeni reads and any files you attach are sent to the AI provider you chose. Nothing else from your computer is uploaded. Zenframe has no servers and collects no analytics.
 
 ## Troubleshooting
 
