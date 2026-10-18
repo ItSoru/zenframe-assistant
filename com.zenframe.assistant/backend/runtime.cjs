@@ -1,5 +1,5 @@
 'use strict';
-// Zenframe Assistant runtime, v1.0.3.
+// Zenframe Assistant runtime, v1.0.4.
 // Two ways to reach an AI:
 //  1. "Claude Code": runs the user's own, unmodified Claude Code and exposes the After Effects
 //     tools to it over a local, token-protected bridge (127.0.0.1 only) via mcp.cjs.
@@ -72,6 +72,24 @@ function sameSecret(a, b) {
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 function providerOf(settings) { return settings.provider && settings.provider !== 'claude-code' ? settings.provider : 'claude-code'; }
+// The effort level chosen for this provider ('low' ... 'max'), or null for the model's default.
+function effortFor(settings) {
+  const id = providerOf(settings);
+  const v = (settings.efforts || {})[id];
+  const levels = providers.EFFORT_LEVELS[id === 'claude-code' ? 'claude' : (providers.PRESETS[id] || {}).effort] || [];
+  return levels.includes(v) ? v : null;
+}
+// Model chosen for Claude Code ('' means Claude Code's own default).
+function claudeCodeModel(settings) {
+  const m = String((settings.models || {})['claude-code'] || settings.model || '').trim();
+  return m === 'default' ? '' : m;
+}
+// When the AI has no memory of a conversation (new provider/model, or the panel was reopened),
+// the visible earlier messages are passed along so it can pick up where things left off.
+function withPrior(prior, prompt) {
+  prior = String(prior || '').trim();
+  return prior ? 'Earlier in this conversation (shown for context; the project may have changed since):\n' + prior + '\n\nNew message:\n' + prompt : prompt;
+}
 
 function systemPrompt(mode, settings, poweredBy) {
   const approval = settings.confirmEdits !== false
@@ -89,12 +107,11 @@ function systemPrompt(mode, settings, poweredBy) {
 class Runtime {
   constructor(options) {
     this.options = options;
-    this.child = null; this.server = null; this.session = null; this.mode = null;
+    this.child = null; this.server = null; this.mode = null; this.convs = {};
     this.queue = Promise.resolve();
     this.token = crypto.randomBytes(32).toString('hex');
     this.active = false; this.stopped = false; this.settings = {};
-    this.pendingConfirm = null; this.inflight = null;
-    this.direct = { key: null, history: [] };
+    this.pendingConfirm = null; this.inflight = null; this.effortCache = {};
     this.dataDir = options.dataDir || path.join(process.env.LOCALAPPDATA || process.env.TEMP || require('os').tmpdir(), 'ZenframeAssistant');
     fs.mkdirSync(this.dataDir, { recursive: true });
     this.keys = options.keyStore || new KeyStore(this.dataDir);
@@ -185,6 +202,15 @@ class Runtime {
     return { id, preset, baseUrl, model };
   }
   async listModels(settings, freeOnly) {
+    if (providerOf(settings) === 'claude-code') {
+      // With an Anthropic key, list the models that key can use; otherwise offer the known Claude models.
+      const key = settings.authMode !== 'claude' ? await this.keys.get('anthropic') : null;
+      if (!key) return providers.CLAUDE_CODE_MODELS.slice();
+      try {
+        const live = await providers.listModels(providers.PRESETS.anthropic, providers.PRESETS.anthropic.baseUrl, key);
+        return ['opus', 'sonnet', 'haiku', 'fable'].concat(live.sort().reverse());
+      } catch (e) { throw new Error(this.redact(e.message)); }
+    }
     const cfg = this.directConfig(settings);
     const key = await this.keys.get(cfg.id);
     if (cfg.preset.needsKey && !key) throw new Error('Save your ' + cfg.preset.label + ' API key first.');
@@ -224,51 +250,69 @@ class Runtime {
     });
   }
 
-  reset() {
-    if (this.active) throw new Error('Stop the current reply first.');
-    this.session = null; this.mode = null; this.direct = { key: null, history: [] };
+  /* ---------- Conversations: each has its own AI memory ---------- */
+  conv(id) {
+    id = String(id || 'default');
+    if (!this.convs[id]) this.convs[id] = { session: null, mode: null, direct: { key: null, history: [] } };
+    return this.convs[id];
   }
+  hasConversation(id) {
+    const c = this.convs[String(id || 'default')];
+    return !!(c && (c.session || c.direct.history.length));
+  }
+  // Forget one conversation's AI memory, or all of them when no id is given.
+  reset(id) {
+    if (this.active && (id === undefined || String(id) === this.runningId)) throw new Error('Stop the current reply first.');
+    if (id === undefined) this.convs = {}; else delete this.convs[String(id)];
+  }
+  // Switch between asking before edits and applying them directly, even mid-reply.
+  setConfirmEdits(on) { this.settings.confirmEdits = !!on; }
 
   /* ---------- Sending a message ---------- */
-  async send(prompt, mode, settings) {
+  async send(prompt, mode, settings, convId, prior) {
     if (this.active) throw new Error('A reply is already running.');
     if (!['edit', 'script'].includes(mode)) throw new Error('Unknown mode');
     if (!prompt.trim()) return;
-    if (providerOf(settings) !== 'claude-code') return this.sendDirect(prompt, mode, settings);
-    return this.sendClaudeCode(prompt, mode, settings);
+    const id = String(convId || 'default');
+    if (providerOf(settings) !== 'claude-code') return this.sendDirect(prompt, mode, settings, id, prior);
+    return this.sendClaudeCode(prompt, mode, settings, id, prior);
   }
 
-  async sendDirect(prompt, mode, settings) {
+  async sendDirect(prompt, mode, settings, convId, prior) {
     const cfg = this.directConfig(settings);
     if (!cfg.model) throw new Error('Choose a model in Settings first (click Load models).');
     const key = await this.keys.get(cfg.id);
     if (cfg.preset.needsKey && !key) throw new Error('Add your ' + cfg.preset.label + ' API key in Settings first.');
-    // A new provider, model or mode starts a fresh conversation for the model.
+    // A new provider, model or mode starts a fresh history for the model.
+    const c = this.conv(convId);
     const sessionKey = [cfg.id, cfg.baseUrl, cfg.model, mode].join('|');
-    if (this.direct.key !== sessionKey) this.direct = { key: sessionKey, history: [] };
+    if (c.direct.key !== sessionKey) c.direct = { key: sessionKey, history: [] };
+    if (!c.direct.history.length) prompt = withPrior(prior, prompt);
     this.settings = Object.assign({}, settings);
-    this.mode = mode; this.active = true; this.stopped = false;
+    this.mode = mode; this.active = true; this.stopped = false; this.runningId = convId;
     const tools = definitions.filter(t => mode === 'edit' || t.name !== 'ae_apply_actions');
-    const before = this.direct.history.length;
+    const history = c.direct.history;
+    const before = history.length;
     this.emit('start', { mode });
     try {
       await providers.runAgent({
         preset: cfg.preset, baseUrl: cfg.baseUrl, key, model: cfg.model,
         system: systemPrompt(mode, settings, 'You are running on the ' + cfg.model + ' model via ' + cfg.preset.label + '.'),
-        definitions: tools, history: this.direct.history, prompt,
+        definitions: tools, history, prompt,
         runTool: (name, args) => this.runTool(name, args),
         emit: (type, data) => this.emit(type, data),
         isStopped: () => this.stopped,
+        effort: effortFor(settings), effortCache: this.effortCache,
         onRequest: req => { this.inflight = req; }
       });
     } catch (e) {
       // Drop the half-finished exchange so the next message starts from a consistent history.
-      this.direct.history.length = before;
+      history.length = before;
       if (!this.stopped) this.emit('error', this.redact(e.message));
     } finally {
       this.inflight = null;
       if (this.pendingConfirm) { this.pendingConfirm(false); this.pendingConfirm = null; }
-      this.active = false;
+      this.active = false; this.runningId = null;
       this.emit('end', { stopped: this.stopped });
     }
   }
@@ -286,22 +330,28 @@ class Runtime {
     return env;
   }
 
-  async sendClaudeCode(prompt, mode, settings) {
+  async sendClaudeCode(prompt, mode, settings, convId, prior) {
     if (!fs.existsSync(settings.claudePath || '') || !fs.existsSync(settings.nodePath || '')) throw new Error('Check the Claude Code and Node.js paths in Settings.');
     const env = await this.buildEnv(settings);
     await this.start();
     this.settings = Object.assign({}, settings);
-    if (this.mode !== mode) this.session = null;
-    this.mode = mode; this.active = true; this.stopped = false;
+    const c = this.conv(convId);
+    if (c.mode !== mode) c.session = null;
+    if (!c.session) prompt = withPrior(prior, prompt);
+    c.mode = mode;
+    this.mode = mode; this.active = true; this.stopped = false; this.runningId = convId;
     this.token = crypto.randomBytes(32).toString('hex');
     const mcp = { mcpServers: { aftereffects: { command: settings.nodePath, args: [path.join(__dirname, 'mcp.cjs')], env: { ZENFRAME_PORT: String(this.server.address().port), ZENFRAME_TOKEN: this.token } } } };
     const system = systemPrompt(mode, settings, 'You are powered by Claude through Claude Code.');
     const args = ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--strict-mcp-config', '--mcp-config', JSON.stringify(mcp),
       '--tools', '', '--allowedTools', 'mcp__aftereffects__*', '--permission-mode', 'dontAsk', '--permission-prompts', 'none', '--setting-sources', '',
       '--settings', JSON.stringify({ disableAllHooks: true }), '--disable-slash-commands', '--system-prompt', system];
-    const session = this.session || uuid();
-    args.push(this.session ? '--resume' : '--session-id', session);
-    if (settings.model && settings.model !== 'default') args.push('--model', settings.model);
+    const session = c.session || uuid();
+    args.push(c.session ? '--resume' : '--session-id', session);
+    const model = claudeCodeModel(settings);
+    if (model) args.push('--model', model);
+    const effort = effortFor(settings);
+    if (effort) args.push('--effort', effort);
 
     const child = cp.spawn(settings.claudePath, args, { cwd: this.dataDir, env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
     this.child = child;
@@ -322,10 +372,10 @@ class Runtime {
       if (j.type === 'result') {
         resultSeen = true;
         if (j.is_error || j.subtype !== 'success') {
-          this.session = null;
+          c.session = null;
           this.emit('error', this.redact((j.errors || []).join('\n') || j.result || 'Claude could not complete this request.'));
         } else {
-          if (!this.stopped) this.session = j.session_id || session;
+          if (!this.stopped) c.session = j.session_id || session;
           if (!text && (j.result || assistantFallback)) this.emit('text', j.result || assistantFallback);
         }
         if (j.usage) this.emit('usage', { input: j.usage.input_tokens, output: j.usage.output_tokens });
@@ -345,7 +395,8 @@ class Runtime {
       const finish = err => {
         if (finished) return; finished = true;
         if (pending.trim()) { try { event(JSON.parse(pending)); } catch (e) {} }
-        this.active = false; this.child = null;
+        this.active = false; this.child = null; this.runningId = null;
+        if (this.stopped) c.session = null;
         if (this.pendingConfirm) { this.pendingConfirm(false); this.pendingConfirm = null; }
         if (err) this.emit('error', this.redact(err));
         this.emit('end', { stopped: this.stopped });
@@ -375,9 +426,8 @@ class Runtime {
     if (this.pendingConfirm) { this.pendingConfirm(false); this.pendingConfirm = null; }
     if (this.inflight) { this.inflight.destroy(new Error('Stopped')); this.inflight = null; }
     if (this.child) this.kill(this.child);
-    this.session = null;
   }
   close() { this.stop(); if (this.server) this.server.close(); this.server = null; }
 }
 
-module.exports = { Runtime, findExecutables, KeyStore, PRESETS: providers.PRESETS };
+module.exports = { Runtime, findExecutables, KeyStore, PRESETS: providers.PRESETS, EFFORT_LEVELS: providers.EFFORT_LEVELS, CLAUDE_CODE_MODELS: providers.CLAUDE_CODE_MODELS };

@@ -1,4 +1,4 @@
-ZENFRAME ASSISTANT 1.0.3 - WINDOWS ONLY
+ZENFRAME ASSISTANT 1.0.4 - WINDOWS ONLY
 Your After Effects assistant is Zeni. Bring your own AI.
 
 Zenframe is an independent product. It is not made, endorsed or supported
@@ -6,7 +6,8 @@ by Adobe or by any AI provider.
 
 1. Extract the entire ZIP (do not run the installer inside the ZIP).
 2. Close After Effects, then double-click Install-Zenframe-Assistant.cmd.
-   No administrator account is required.
+   No administrator account is required. If Windows warns about a file
+   from the internet, choose Run (or More info, then Run anyway).
 3. Open After Effects > Window > Extensions > Zenframe Assistant.
 4. Open Settings (gear icon) and choose a Provider:
      Free options:  Groq, OpenRouter (tick "Show free models only"),

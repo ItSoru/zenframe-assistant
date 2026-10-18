@@ -53,7 +53,7 @@ try {
         New-Item -Path $key -Force | Out-Null
         New-ItemProperty -LiteralPath $key -Name PlayerDebugMode -PropertyType String -Value '1' -Force | Out-Null
     }
-    [pscustomobject]@{ InstalledAt=(Get-Date -Format o); ExtensionId='com.zenframe.assistant'; Version='1.0.3'; PreviousInstallBackup=$backup } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destination 'installation-record.json') -Encoding UTF8
+    [pscustomobject]@{ InstalledAt=(Get-Date -Format o); ExtensionId='com.zenframe.assistant'; Version='1.0.4'; PreviousInstallBackup=$backup } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destination 'installation-record.json') -Encoding UTF8
     Write-Host 'Zenframe Assistant installed.' -ForegroundColor Green
     Write-Host 'Open After Effects > Window > Extensions > Zenframe Assistant.'
     Write-Host 'Next: open Settings in the panel and choose your AI provider. See START-HERE.txt.'

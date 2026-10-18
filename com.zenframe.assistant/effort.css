@@ -1,0 +1,123 @@
+/* Zenframe effort slider, v1.0.4 (see effort.js). */
+
+.compose-wrap { position: relative; }
+
+/* Pill in the message box */
+.effort-pill {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 170px;
+  padding: 5px 10px 5px 9px; border: 1px solid #2c2933; border-radius: 999px;
+  background: #121116; color: var(--muted); font-size: 11px; cursor: pointer;
+  transition: color .18s, border-color .18s, background .18s;
+}
+.effort-pill:hover, .effort-pill[aria-expanded="true"] { color: var(--text); border-color: #3d3747; background: #19171e; }
+.effort-pill .ef-pill-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.effort-pill .ef-pill-icon { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; flex-shrink: 0; }
+.effort-pill .ef-pill-chev { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; flex-shrink: 0; transition: transform .25s cubic-bezier(.2, .9, .3, 1); }
+.effort-pill[aria-expanded="true"] .ef-pill-chev { transform: rotate(180deg); }
+.effort-pill.ef-pill-top { color: var(--accent); border-color: rgba(var(--accent-rgb), .45); }
+
+/* Popover card */
+.effort-pop {
+  position: absolute; left: 14px; right: 14px; bottom: calc(100% - 2px); z-index: 30;
+  padding: 14px 14px 16px; border: 1px solid #2f2d34; border-radius: 22px;
+  background: #232227; box-shadow: 0 18px 50px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .02);
+  opacity: 0; transform: translateY(8px) scale(.97); transform-origin: 50% 100%;
+  transition: opacity .18s ease, transform .3s cubic-bezier(.2, .9, .3, 1.15);
+}
+.effort-pop.ef-open { opacity: 1; transform: none; }
+
+.ef-head { display: flex; justify-content: center; margin-bottom: 14px; }
+.ef-titles { text-align: center; min-width: 0; }
+.ef-title { font-size: 16px; font-weight: 600; color: var(--text); line-height: 1.3; transition: color .35s ease; }
+.ef-title.ef-pop-in { animation: ef-title-in .22s cubic-bezier(.2, .9, .3, 1); }
+@keyframes ef-title-in { from { opacity: .35; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.effort-pop.ef-is-top .ef-title { color: var(--accent); }
+.ef-sub {
+  display: inline-flex; align-items: center; gap: 4px; max-width: 100%; margin-top: 2px; padding: 1px 6px;
+  border: 0; border-radius: 8px; background: transparent; color: #bdbac4; font-size: 12px; cursor: pointer;
+}
+.ef-sub:hover { color: var(--text); background: rgba(255, 255, 255, .05); }
+.ef-sub-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ef-sub.ef-warn { color: var(--accent); cursor: default; animation: ef-title-in .25s ease; }
+.ef-chev { font-size: 15px; line-height: 1; transition: transform .25s cubic-bezier(.2, .9, .3, 1); }
+.effort-pop.ef-list-open .ef-chev { transform: rotate(90deg); }
+
+/* Track */
+.ef-track {
+  position: relative; height: 30px; margin: 0 2px; border-radius: 999px;
+  background: #3a393f; cursor: pointer; touch-action: none; outline: none;
+}
+.ef-track:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+.ef-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: #000; }
+.ef-dots span {
+  position: absolute; top: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%;
+  background: #7d7b84; pointer-events: none;
+}
+.ef-thumb { position: absolute; left: 0; top: 50%; width: 0; height: 0; will-change: transform; }
+.ef-knob {
+  position: absolute; left: 0; top: 0; transform: translateY(-50%);
+  border-radius: 50%; background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .35), 0 0 0 1px rgba(0, 0, 0, .06);
+  transition: transform .2s cubic-bezier(.2, .9, .3, 1.3), box-shadow .2s;
+}
+.ef-track.ef-dragging .ef-knob { transform: translateY(-50%) scale(1.07); box-shadow: 0 4px 16px rgba(0, 0, 0, .45), 0 0 0 1px rgba(0, 0, 0, .06); }
+.ef-track.ef-dragging { cursor: grabbing; }
+/* Spring onto a stop on release (slight overshoot), instant tracking while dragging. */
+.ef-track.ef-snap .ef-thumb { transition: transform .42s cubic-bezier(.22, 1.25, .36, 1); }
+.ef-track.ef-snap .ef-fill { transition: width .42s cubic-bezier(.22, 1.25, .36, 1); }
+
+/* Top level: purple gradient with twinkling, drifting sparkles */
+.ef-ultra { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 999px; overflow: hidden; opacity: 0; pointer-events: none; }
+.ef-track.ef-snap .ef-ultra { transition: opacity .42s ease, width .42s cubic-bezier(.22, 1.25, .36, 1); }
+.ef-shimmer {
+  position: absolute; top: 0; bottom: 0; left: 0; width: var(--ef-track-w, 100%);
+  /* Built from the accent color chosen in Settings: light and dark tints drift over it. */
+  background:
+    linear-gradient(100deg, rgba(255, 255, 255, .5) 0%, rgba(255, 255, 255, .12) 22%, rgba(0, 0, 0, .3) 48%, rgba(0, 0, 0, .14) 70%, rgba(255, 255, 255, .22) 100%),
+    var(--accent-fill, #b4a0f7);
+  background-size: 220% 100%, 100% 100%;
+  animation: ef-shimmer 6s ease-in-out infinite alternate;
+}
+@keyframes ef-shimmer { from { background-position: 0% 50%, 0 0; } to { background-position: 100% 50%, 0 0; } }
+.ef-sparkles { position: absolute; top: 0; bottom: 0; left: 0; width: var(--ef-track-w, 100%); }
+.ef-sparkles i {
+  position: absolute; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 4px rgba(255, 255, 255, .9), 0 0 8px rgba(var(--accent-rgb, 180, 160, 247), .8);
+  animation-name: ef-twinkle, ef-drift; animation-timing-function: ease-in-out, linear;
+  animation-iteration-count: infinite, infinite; animation-direction: alternate, normal;
+}
+@keyframes ef-twinkle { 0% { opacity: .1; transform: scale(.6); } 60% { opacity: .95; transform: scale(1.15); } 100% { opacity: .25; transform: scale(.8); } }
+@keyframes ef-drift { from { margin-left: 0; } to { margin-left: 26px; } }
+.effort-pop:not(.ef-open) .ef-sparkles i, .effort-pop:not(.ef-open) .ef-shimmer { animation-play-state: paused; }
+/* On reaching the top, the black fill dissolves into purple from the right. */
+.ef-shade { position: absolute; top: 0; bottom: 0; left: 0; width: var(--ef-track-w, 100%); background: linear-gradient(90deg, #000 30%, rgba(0, 0, 0, .65) 55%, transparent 85%); opacity: 1; }
+.ef-ultra.ef-swept .ef-shade { animation: ef-sweep 1.1s cubic-bezier(.4, 0, .2, 1) forwards; }
+@keyframes ef-sweep { 0% { opacity: 1; transform: translateX(0); } 100% { opacity: 0; transform: translateX(-40%); } }
+.ef-ultra:not(.ef-swept) .ef-shade { opacity: .55; }
+
+/* Model list */
+.ef-models {
+  max-height: 168px; margin-top: 12px; padding: 4px; overflow-y: auto;
+  border: 1px solid #2f2d34; border-radius: 12px; background: #1b1a1f;
+  animation: ef-list-in .2s cubic-bezier(.2, .9, .3, 1);
+}
+@keyframes ef-list-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.ef-model {
+  display: block; width: 100%; padding: 7px 10px; border: 0; border-radius: 8px; text-align: left;
+  background: transparent; color: #cfccd6; font-size: 12px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ef-model:hover { background: #26242b; color: var(--text); }
+.ef-model.ef-current { color: var(--accent); }
+.ef-model.ef-current::after { content: ' ✓'; }
+.ef-empty { margin: 6px 8px 8px; font-size: 12px; color: var(--muted); }
+.ef-settings { margin: 0 4px 6px; padding: 6px 10px; border: 1px solid #34313b; border-radius: 8px; background: transparent; color: var(--accent); font-size: 12px; cursor: pointer; }
+
+@media (prefers-reduced-motion: reduce) {
+  .effort-pop, .ef-track.ef-snap .ef-thumb, .ef-track.ef-snap .ef-fill, .ef-knob { transition: none; }
+  .ef-sparkles i, .ef-shimmer, .ef-ultra.ef-swept .ef-shade, .ef-title.ef-pop-in, .ef-models { animation: none; }
+  .ef-ultra.ef-swept .ef-shade { opacity: 0; }
+}
+
+/* At the top level the stop dots fade out, leaving only the sparkles. */
+.ef-dots span { transition: opacity .35s ease; }
+.effort-pop.ef-is-top .ef-dots span { opacity: 0; }

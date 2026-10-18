@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="motion.css">
 <link rel="stylesheet" href="alive.css">
 <link rel="stylesheet" href="controls.css">
+<link rel="stylesheet" href="effort.css">
 </head>
 <body>
 <header>
@@ -28,6 +29,10 @@
 
 <div class="workspace">
   <main id="chatView" class="view active">
+    <div class="conv-bar">
+      <div id="convTabs" class="conv-tabs" role="tablist" aria-label="Conversations"></div>
+      <button id="newConv" class="conv-new" title="New conversation" aria-label="New conversation">＋</button>
+    </div>
     <div id="messages" role="log" aria-label="Conversation" aria-live="polite">
       <section id="welcome">
         <div class="eyebrow">MAKE ROOM FOR THE IDEA</div>
@@ -43,19 +48,24 @@
     </div>
     <div id="activity" role="status" hidden></div>
     <div class="compose-wrap">
+      <div id="effortPop" class="effort-pop" hidden></div>
       <div class="composer">
         <label for="prompt" class="sr-only">Message Zeni</label>
         <textarea id="prompt" rows="3" placeholder="Ask Zeni. What are we making?" spellcheck="true"></textarea>
         <div class="compose-controls">
           <label class="sr-only" for="mode">Working mode</label>
           <select id="mode"><option value="edit">Edit project</option><option value="script">Draft scripts</option></select>
-          <label class="sr-only" for="model">Claude model</label>
-          <select id="model"><option value="default">Default model</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option></select>
+          <button id="effortPill" type="button" class="effort-pill" aria-label="Effort and model"></button>
           <button id="send" class="send" aria-label="Send message" title="Send message">↑</button>
           <button id="stop" class="send" aria-label="Stop reply" title="Stop reply" hidden>■</button>
         </div>
       </div>
-      <div class="composer-note"><span id="modeNote">Edits wait for your approval · Undo in AE</span><span>↵ Send</span></div>
+      <div class="composer-note">
+        <label class="approval-switch" id="approvalWrap"><span class="sr-only">When Zeni edits the project</span>
+          <select id="approval" title="Choose whether Zeni asks before applying edits"><option value="ask">Ask before edits</option><option value="auto">Auto-apply edits</option></select>
+        </label>
+        <span id="modeNote">Undo in AE</span><span class="send-hint">↵ Send</span>
+      </div>
     </div>
   </main>
 
@@ -117,9 +127,12 @@
   <div id="directGroup" hidden>
     <label for="baseUrl">Base URL</label>
     <input id="baseUrl" spellcheck="false">
-    <label for="modelName">Model</label>
-    <input id="modelName" list="modelList" spellcheck="false" autocomplete="off" placeholder="Click Load models, then pick one">
-    <datalist id="modelList"></datalist>
+  </div>
+
+  <div id="modelGroup">
+    <label for="modelSelect">Model</label>
+    <select id="modelSelect" class="field"><option value="">Click Load models first</option></select>
+    <input id="modelName" spellcheck="false" autocomplete="off" placeholder="Type the exact model name, then press Enter" hidden>
     <label class="check" id="freeOnlyRow" hidden><input id="freeOnly" type="checkbox" checked> Show free models only</label>
     <div class="row-buttons">
       <button id="loadModels" type="button" class="secondary">Load models</button>
@@ -142,7 +155,7 @@
 
   <h3>Safety</h3>
   <label class="check"><input id="confirmEdits" type="checkbox" checked> Ask me before Zeni applies project edits</label>
-  <p class="help">When on, every batch of edits is shown to you first with Apply and Decline buttons.</p>
+  <p class="help">On: every batch of edits is shown first with Apply and Decline. Off: edits apply right away (each batch is still one Undo step). You can also switch this under the message box.</p>
 
   <section class="appearance" aria-labelledby="appearanceTitle">
     <h3 id="appearanceTitle">Accent color</h3>
@@ -167,14 +180,15 @@
     <p>Prompts and the project details Zeni reads (comp names, layer names, properties) are sent to the AI provider you chose to generate replies. Media files are not uploaded. Zenframe has no servers and collects no analytics.</p>
     <p>Zenframe is an independent product. It is not made, endorsed or supported by Adobe or by any AI provider.</p>
   </div>
-  <button id="clearHistory" class="secondary">Clear local conversation</button>
-  <p class="help">Clears this panel's messages and starts a new session.</p>
-  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.0.3</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
+  <button id="clearHistory" class="secondary">Delete all conversations</button>
+  <p class="help">Deletes every conversation saved in this panel. To remove just one, close its tab.</p>
+  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.0.4</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
 </section>
 
 <footer><span><i></i> ZENFRAME</span><span>Unofficial · bring your own AI</span></footer>
 <script src="theme.js"></script>
 <script src="motion.js"></script>
+<script src="effort.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

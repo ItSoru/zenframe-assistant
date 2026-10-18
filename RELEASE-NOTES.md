@@ -1,4 +1,21 @@
-# Version 1.0.3
+# Version 1.0.4
+
+**Conversations**
+- Multiple conversations as tabs: new (＋ or Ctrl+T), switch (click or Ctrl+Tab), rename (double-click), close (× twice).
+- Each conversation keeps its own messages and its own AI memory, and they are saved between sessions.
+- Read other tabs while Zeni works; an approval request brings you back to the right tab.
+- When the AI has no memory of a conversation (after reopening AE, or a new provider/model), it gets the recent messages as context.
+
+**Effort and models**
+- New effort slider in the message box. Claude (Claude Code and the Anthropic API): Low, Medium, High, Extra, Max. Other providers: Low, Medium, High.
+- Sent as `--effort` to Claude Code, `output_config.effort` to the Anthropic API, and `reasoning_effort` (OpenRouter: `reasoning.effort`) to the others. If a model does not accept a level, Zeni steps down automatically and tells you once.
+- The top level glows in your accent color with drifting sparkles.
+- Claude Code lists real model versions (for example claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5, claude-fable-5-1); with an Anthropic key, Load models fetches the live list.
+- The Model setting is a regular dropdown (the old list could not open inside After Effects), remembers the loaded list, and accepts a typed model name.
+
+**Approving edits**
+- New switch under the message box: **Ask before edits** or **Auto-apply edits**. It takes effect immediately, even mid-reply.
+- **Always apply** button on approval cards.
 
 **Bring your own AI**
 - New providers: Groq, OpenRouter (with a "free models only" filter), Google Gemini, Ollama (local), Anthropic API, OpenAI, and any custom OpenAI-compatible service. Claude Code remains available.
@@ -10,7 +27,7 @@
 - Clear "independent product" wording in the panel, README, license and notices.
 
 **Safety**
-- Edits are approved by you: each batch shows the exact changes with Apply and Decline (can be turned off in Settings).
+- Edits can be approved by you: each batch shows the exact changes before anything is applied.
 - Every batch is fully checked before anything is applied. An invalid action now changes nothing, and adding layers earlier in a batch no longer shifts later edits onto the wrong layer.
 - Scripts that touch files, run system commands, open network connections, quit AE, or change preferences show a warning and need a second click.
 - Tool arguments are read with a strict JSON parser instead of being evaluated as code.

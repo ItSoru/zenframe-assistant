@@ -1,4 +1,4 @@
-/* Zenframe 1.0.3 controls: API key settings, edit approval card, script warning. */
+/* Zenframe 1.0.4 controls: API key settings, edit approval card, script warning. */
 
 .settings h3 { margin: 26px 0 6px; font-size: 13px; font-weight: 600; }
 .settings label { display: block; margin: 16px 0 7px; font-size: 12px; }
@@ -68,3 +68,47 @@
 }
 .script-warning strong { color: var(--error); }
 #cancelRisky { display: block; width: 100%; margin: 8px 0 0; }
+
+/* Conversation tabs */
+.conv-bar { display: flex; align-items: center; gap: 6px; padding: 8px 14px 0; flex-shrink: 0; }
+.conv-tabs { display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding-bottom: 4px; }
+.conv-tab {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0; max-width: 160px;
+  padding: 5px 6px 5px 10px; border: 1px solid #27242d; border-radius: 999px;
+  background: #0b0a0e; color: var(--muted); font-size: 11px; cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+.conv-tab:hover { color: var(--text); border-color: var(--accent-border); }
+.conv-tab.active { color: var(--text); border-color: var(--accent); background: rgba(var(--accent-rgb), .1); }
+.conv-tab .conv-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-tab .conv-title-input { width: 110px; padding: 0; border: 0; background: transparent; color: var(--text); font: inherit; outline: none; }
+.conv-tab .conv-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; display: none; }
+.conv-tab.running .conv-dot { display: block; background: var(--accent); animation: zf-conv-pulse 1.2s ease-in-out infinite; }
+.conv-tab.attention .conv-dot { display: block; background: #efbd74; animation: none; }
+@keyframes zf-conv-pulse { 50% { opacity: .35; } }
+.conv-tab .conv-close {
+  border: 0; background: transparent; color: var(--muted); font-size: 12px; line-height: 1;
+  padding: 2px 4px; border-radius: 999px; cursor: pointer;
+}
+.conv-tab .conv-close:hover { color: var(--text); background: rgba(255, 255, 255, .08); }
+.conv-tab .conv-close.confirming { color: var(--error); font-size: 10px; }
+.conv-new { flex-shrink: 0; width: 28px; height: 28px; margin-bottom: 4px; border: 1px solid #27242d; border-radius: 50%; background: #0b0a0e; color: var(--muted); font-size: 13px; cursor: pointer; }
+.conv-new:hover:not(:disabled) { color: var(--accent); border-color: var(--accent-border); }
+.conv-pane[hidden] { display: none; }
+
+/* Approval switch under the message box */
+.composer-note { align-items: center; gap: 8px; }
+.approval-switch select {
+  padding: 2px 6px; border: 1px solid #2a2730; border-radius: 999px;
+  background: #0b0a0e; color: var(--accent); font-size: 10px; cursor: pointer;
+}
+.approval-switch select.auto { color: #efbd74; border-color: rgba(239, 189, 116, .45); }
+#modeNote { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.confirm-actions .always { flex: 0 0 auto; }
+
+/* No focus ring when clicking. A ring in the accent color appears only while moving around with Tab. */
+html :focus, html :focus-visible { outline: none; }
+html .ef-track:focus-visible { box-shadow: none; }
+.keyboard-navigation button:focus, .keyboard-navigation select:focus, .keyboard-navigation input:focus,
+.keyboard-navigation textarea:focus, .keyboard-navigation summary:focus, .keyboard-navigation [tabindex]:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.keyboard-navigation #prompt:focus, .keyboard-navigation .conv-title-input:focus { outline: none; }

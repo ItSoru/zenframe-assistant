@@ -5,14 +5,31 @@ const http = require('http');
 const https = require('https');
 const { URL } = require('url');
 
+// Effort levels each kind of provider accepts, lowest to highest.
+// Claude: https://platform.claude.com/docs/en/build-with-claude/effort (output_config.effort)
+// OpenAI-style: reasoning_effort (OpenRouter: reasoning.effort).
+const EFFORT_LEVELS = {
+  claude: ['low', 'medium', 'high', 'xhigh', 'max'],
+  openai: ['low', 'medium', 'high']
+};
+
+// Models offered for Claude Code when no Anthropic key is available to fetch the live list.
+// Aliases always point at the newest model of that line.
+const CLAUDE_CODE_MODELS = [
+  'opus', 'sonnet', 'haiku', 'fable',
+  'claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-1',
+  'claude-opus-5', 'claude-sonnet-5', 'claude-fable-5',
+  'claude-opus-4-8', 'claude-opus-4-7', 'claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5'
+];
+
 const PRESETS = {
-  anthropic: { label: 'Anthropic API', kind: 'anthropic', baseUrl: 'https://api.anthropic.com/v1', needsKey: true, keyHint: 'sk-ant-…', keyUrl: 'console.anthropic.com' },
-  openai: { label: 'OpenAI', kind: 'openai', baseUrl: 'https://api.openai.com/v1', needsKey: true, keyHint: 'sk-…', keyUrl: 'platform.openai.com/api-keys' },
-  groq: { label: 'Groq (free tier)', kind: 'openai', baseUrl: 'https://api.groq.com/openai/v1', needsKey: true, keyHint: 'gsk_…', keyUrl: 'console.groq.com/keys' },
-  openrouter: { label: 'OpenRouter (has free models)', kind: 'openai', baseUrl: 'https://openrouter.ai/api/v1', needsKey: true, keyHint: 'sk-or-…', keyUrl: 'openrouter.ai/keys', freeFilter: true, extraHeaders: { 'X-Title': 'Zenframe Assistant' } },
-  gemini: { label: 'Google Gemini (free tier)', kind: 'openai', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', needsKey: true, keyHint: 'AIza…', keyUrl: 'aistudio.google.com/apikey', stripModelPrefix: 'models/' },
-  ollama: { label: 'Ollama (local, free)', kind: 'openai', baseUrl: 'http://localhost:11434/v1', needsKey: false, editableUrl: true },
-  custom: { label: 'Custom (OpenAI-compatible)', kind: 'openai', baseUrl: '', needsKey: false, optionalKey: true, editableUrl: true }
+  anthropic: { label: 'Anthropic API', kind: 'anthropic', effort: 'claude', baseUrl: 'https://api.anthropic.com/v1', needsKey: true, keyHint: 'sk-ant-…', keyUrl: 'console.anthropic.com' },
+  openai: { label: 'OpenAI', kind: 'openai', effort: 'openai', baseUrl: 'https://api.openai.com/v1', needsKey: true, keyHint: 'sk-…', keyUrl: 'platform.openai.com/api-keys' },
+  groq: { label: 'Groq (free tier)', kind: 'openai', effort: 'openai', baseUrl: 'https://api.groq.com/openai/v1', needsKey: true, keyHint: 'gsk_…', keyUrl: 'console.groq.com/keys' },
+  openrouter: { label: 'OpenRouter (has free models)', kind: 'openai', effort: 'openai', effortField: 'reasoning', baseUrl: 'https://openrouter.ai/api/v1', needsKey: true, keyHint: 'sk-or-…', keyUrl: 'openrouter.ai/keys', freeFilter: true, extraHeaders: { 'X-Title': 'Zenframe Assistant' } },
+  gemini: { label: 'Google Gemini (free tier)', kind: 'openai', effort: 'openai', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', needsKey: true, keyHint: 'AIza…', keyUrl: 'aistudio.google.com/apikey', stripModelPrefix: 'models/' },
+  ollama: { label: 'Ollama (local, free)', kind: 'openai', effort: 'openai', baseUrl: 'http://localhost:11434/v1', needsKey: false, editableUrl: true },
+  custom: { label: 'Custom (OpenAI-compatible)', kind: 'openai', effort: 'openai', baseUrl: '', needsKey: false, optionalKey: true, editableUrl: true }
 };
 
 const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', '[::1]'];
@@ -67,12 +84,15 @@ function authHeaders(preset, key) {
 }
 
 /* ---------- Model lists ---------- */
+const NON_CHAT = /(whisper|embed|tts|transcribe|dall-e|imagen|image-generation|moderation|guard|veo|aqa|rerank|audio-preview|speech)/i;
 async function listModels(preset, baseUrl, key, { freeOnly = false } = {}) {
-  const res = await request('GET', baseUrl + '/models', { headers: authHeaders(preset, key), timeoutMs: 30000 });
+  const res = await request('GET', baseUrl + '/models' + (preset.kind === 'anthropic' ? '?limit=1000' : ''), { headers: authHeaders(preset, key), timeoutMs: 30000 });
   if (res.status !== 200 || !res.json) throw providerError(preset, res);
   let rows = Array.isArray(res.json.data) ? res.json.data : Array.isArray(res.json.models) ? res.json.models : [];
   // Keep only models that advertise tool support, when the provider says so (OpenRouter does).
   rows = rows.filter(m => !Array.isArray(m.supported_parameters) || m.supported_parameters.includes('tools'));
+  // Drop models that cannot chat at all (speech, embeddings, images, moderation).
+  rows = rows.filter(m => !NON_CHAT.test(String(m.id || m.name || '')));
   if (freeOnly) rows = rows.filter(m => /:free$/.test(m.id || '') || (m.pricing && Number(m.pricing.prompt) === 0 && Number(m.pricing.completion) === 0));
   let ids = rows.map(m => String(m.id || m.name || '')).filter(Boolean);
   if (preset.stripModelPrefix) ids = ids.map(id => id.startsWith(preset.stripModelPrefix) ? id.slice(preset.stripModelPrefix.length) : id);
@@ -100,12 +120,24 @@ function toolsFor(preset, definitions) {
 }
 
 /* ---------- One model turn ---------- */
-async function chat({ preset, baseUrl, key, model, system, history, tools, onRequest }) {
+// A 400 that is about the effort setting (unsupported level, or no reasoning on this model).
+function effortError(res) {
+  const text = JSON.stringify(res.json || res.text || '');
+  return res.status === 400 && /effort|reasoning|output_config|thinking/i.test(text);
+}
+class EffortRejected extends Error {}
+
+// Thinking counts toward max_tokens, so higher effort gets more room.
+function maxTokensFor(effort) {
+  return effort === 'xhigh' || effort === 'max' ? 64000 : effort === 'high' ? 32000 : 16000;
+}
+
+async function chat({ preset, baseUrl, key, model, system, history, tools, onRequest, effort }) {
   if (preset.kind === 'anthropic') {
-    const res = await request('POST', baseUrl + '/messages', {
-      headers: authHeaders(preset, key), onRequest,
-      body: { model, max_tokens: 4096, system, messages: history, tools }
-    });
+    const body = { model, max_tokens: maxTokensFor(effort), system, messages: history, tools };
+    if (effort) body.output_config = { effort };
+    const res = await request('POST', baseUrl + '/messages', { headers: authHeaders(preset, key), onRequest, body, timeoutMs: 10 * 60 * 1000 });
+    if (effort && effortError(res)) throw new EffortRejected(effort);
     if (res.status !== 200 || !res.json) throw providerError(preset, res);
     const content = res.json.content || [];
     return {
@@ -115,10 +147,10 @@ async function chat({ preset, baseUrl, key, model, system, history, tools, onReq
       usage: res.json.usage ? { input: res.json.usage.input_tokens, output: res.json.usage.output_tokens } : null
     };
   }
-  const res = await request('POST', baseUrl + '/chat/completions', {
-    headers: authHeaders(preset, key), onRequest,
-    body: { model, messages: [{ role: 'system', content: system }].concat(history), tools, tool_choice: 'auto' }
-  });
+  const body = { model, messages: [{ role: 'system', content: system }].concat(history), tools, tool_choice: 'auto' };
+  if (effort) { if (preset.effortField === 'reasoning') body.reasoning = { effort }; else body.reasoning_effort = effort; }
+  const res = await request('POST', baseUrl + '/chat/completions', { headers: authHeaders(preset, key), onRequest, body, timeoutMs: 10 * 60 * 1000 });
+  if (effort && effortError(res)) throw new EffortRejected(effort);
   if (res.status !== 200 || !res.json) throw providerError(preset, res);
   if (res.json.error) throw providerError(preset, { status: 500, json: res.json, text: JSON.stringify(res.json.error) });
   const msg = (res.json.choices && res.json.choices[0] && res.json.choices[0].message) || {};
@@ -137,14 +169,42 @@ async function chat({ preset, baseUrl, key, model, system, history, tools, onReq
 const MAX_STEPS = 24;
 const MAX_RESULT_CHARS = 12000;
 
-async function runAgent({ preset, baseUrl, key, model, system, definitions, history, prompt, runTool, emit, isStopped, onRequest }) {
+// Calls chat() at the requested effort. If the model rejects that level, steps down one level at a
+// time, then drops the setting. The level that worked is remembered per model in effortCache.
+async function chatWithEffort(args, effort, effortCache, emit) {
+  const cacheKey = args.baseUrl + '|' + args.model;
+  const levels = EFFORT_LEVELS[args.preset.effort] || [];
+  let current = effort && levels.includes(effort) ? effort : null;
+  if (current && effortCache && cacheKey in effortCache) {
+    const known = effortCache[cacheKey];
+    current = known === null ? null : levels.indexOf(known) < levels.indexOf(current) ? known : current;
+  }
+  for (;;) {
+    try {
+      const turn = await chat(Object.assign({}, args, { effort: current }));
+      if (effortCache && effort && current !== effort && effortCache[cacheKey] !== current) {
+        effortCache[cacheKey] = current;
+        emit('notice', current
+          ? 'This model does not accept "' + effort + '" effort, so Zeni used "' + current + '" instead.'
+          : 'This model does not support effort levels, so Zeni used its default.');
+      }
+      return turn;
+    } catch (e) {
+      if (!(e instanceof EffortRejected)) throw e;
+      const i = levels.indexOf(current);
+      current = i > 0 ? levels[i - 1] : null;
+    }
+  }
+}
+
+async function runAgent({ preset, baseUrl, key, model, system, definitions, history, prompt, runTool, emit, isStopped, onRequest, effort, effortCache }) {
   const allowed = new Set(definitions.map(t => t.name));
   const tools = toolsFor(preset, definitions);
   history.push({ role: 'user', content: prompt });
   let shown = '';
   for (let step = 0; step < MAX_STEPS; step++) {
     if (isStopped()) return;
-    const turn = await chat({ preset, baseUrl, key, model, system, history, tools, onRequest });
+    const turn = await chatWithEffort({ preset, baseUrl, key, model, system, history, tools, onRequest }, effort, effortCache, emit);
     history.push(turn.assistant);
     if (turn.usage) emit('usage', turn.usage);
     if (turn.text && turn.text.trim()) { shown = shown ? shown + '\n\n' + turn.text.trim() : turn.text.trim(); emit('text', shown); }
@@ -171,4 +231,4 @@ async function runAgent({ preset, baseUrl, key, model, system, definitions, hist
   emit('notice', 'Zeni stopped after ' + MAX_STEPS + ' steps to avoid looping. Ask again to continue.');
 }
 
-module.exports = { PRESETS, checkBaseUrl, listModels, runAgent, toolsFor, cleanSchema };
+module.exports = { PRESETS, EFFORT_LEVELS, CLAUDE_CODE_MODELS, checkBaseUrl, listModels, runAgent, toolsFor, cleanSchema, maxTokensFor };

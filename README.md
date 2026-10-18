@@ -1,4 +1,4 @@
-# Zenframe Assistant 1.0.3
+# Zenframe Assistant 1.0.4
 
 Chat with **Zeni** inside After Effects. Use **Edit project** for supported changes (you approve each batch before it runs) or **Draft scripts** to review JSX before running it.
 
@@ -28,13 +28,13 @@ Chat with **Zeni** inside After Effects. Use **Edit project** for supported chan
 
 Free tiers and model lists change often; check each provider's site for current limits.
 
-**Model quality matters.** Zeni needs a model that supports *tool calling*. Larger models (Claude, GPT-class, large Llama/Qwen models) handle After Effects edits and ExtendScript far better than small free ones. Keep **Ask me before Zeni applies project edits** on, especially with free models.
+**Model quality matters.** Zeni needs a model that supports *tool calling*. Larger models (Claude, GPT-class, large Llama/Qwen models) handle After Effects edits and ExtendScript far better than small free ones. Keep **Ask before edits** on, especially with free models.
 
 ## Install
 
 1. Extract the entire ZIP. Do not run the installer from inside the ZIP.
 2. Close After Effects.
-3. Double-click **Install-Zenframe-Assistant.cmd**. No administrator account is needed.
+3. Double-click **Install-Zenframe-Assistant.cmd**. No administrator account is needed. Windows may warn about a file from the internet: choose **Run** (or **More info**, then **Run anyway**).
 4. Open After Effects, then **Window > Extensions > Zenframe Assistant**.
 
 The installer checks every file against `checksums.json`, installs for the current Windows user only, backs up any previous Zenframe install, and records your original Adobe debug settings so they can be restored later.
@@ -56,13 +56,16 @@ Then click **Save & check connection**. The status line tells you what is missin
 
 ## Using Zeni
 
+- **Conversations:** keep several chats open as tabs above the messages. Click **＋** (or press Ctrl+T) for a new one, click a tab to switch (Ctrl+Tab cycles), double-click a tab to rename it, and click **×** twice to close it. Each conversation keeps its own history, and they are saved when you close After Effects. While Zeni works in one tab you can read the others; if it needs your approval, it brings you back to that tab.
+- **Effort and model:** click the effort button in the message box (it shows **Select effort** until you pick a level). Drag the slider or use the arrow keys: Claude has **Low, Medium, High, Extra and Max**; Groq, OpenRouter, Gemini, OpenAI and Ollama have **Low, Medium and High**. Higher effort means more thorough answers but slower replies and more tokens. Press Delete on the slider to go back to the model's default. Click the model name above the slider to switch models. Effort is remembered separately for each provider.
+- **Approving edits:** the switch under the message box chooses **Ask before edits** (you see each batch first) or **Auto-apply edits** (changes apply right away). The same setting is in Settings, and **Always apply** on an approval card switches to auto-apply.
 - **Edit project:** create compositions, text, solids and nulls; rename layers; set properties, keyframes and expressions; add installed effects; duplicate layers; adjust timing.
   - Every batch is checked in After Effects first. If anything in it is invalid, **nothing** is changed.
-  - With **Ask me before Zeni applies project edits** on (the default), you see the exact list of changes with **Apply** and **Decline**.
+  - With **Ask before edits** (the default), you see the exact list of changes with **Apply**, **Always apply** and **Decline**.
   - Each applied batch is one Undo step. A rare runtime error can still leave earlier actions in that batch applied; Zeni reports this, and Undo reverts it.
 - **Draft scripts:** Zeni writes JSX into the Scripts tab. Nothing runs until you click **Run in After Effects**. If a script touches files, runs system commands, opens network connections, quits AE, or similar, you get a warning and must click **Run anyway**. The check is a helpful filter, not a guarantee, so read scripts before running them.
 - **Stop** ends the current reply and cancels any pending approval. It cannot reverse edits already applied or interrupt a script already running inside AE.
-- Switching provider, model or mode starts a fresh conversation with the AI.
+- If you switch provider, model or mode, or reopen After Effects, the AI is given the conversation's recent messages so it can pick up where you left off.
 - Enter sends. Shift+Enter adds a line.
 - Zeni reads composition metadata and properties, not rendered frames.
 
@@ -80,7 +83,7 @@ See **PRIVACY.md**. In short: prompts and the project details Zeni reads are sen
 - **Ollama "Could not connect":** make sure Ollama is running.
 - **Login expired (Claude Code login):** run `claude auth login` in Command Prompt.
 - **After Effects not responding:** close any open dialog boxes in AE. Long scripts can keep running after the panel's 90-second wait.
-- **Package integrity error:** extract a fresh copy of the ZIP. The checksums detect damaged or altered files inside the package; compare the ZIP's SHA-256 with the one published by the seller to confirm the download itself.
+- **Package integrity error:** extract a fresh copy of the ZIP. The checksums detect damaged or altered files inside the package; compare the ZIP's SHA-256 with the one on the download page to confirm the download itself.
 
 ## Update and uninstall
 

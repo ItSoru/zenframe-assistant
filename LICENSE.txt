@@ -1,13 +1,14 @@
 ZENFRAME ASSISTANT END USER LICENSE
-Copyright (c) 2026 Test Studio. All rights reserved.
+Copyright (c) 2026 ZENFRAME. All rights reserved.
 
-1. LICENSE. When you obtain Zenframe Assistant ("the Software") from
-example.com, you get a personal, non-exclusive, non-transferable
-license to install and use it on computers you own or control, for personal
-or commercial video work.
+1. LICENSE. When you download Zenframe Assistant ("the Software") from
+its official download page or directly from its author, you get a personal,
+non-exclusive, non-transferable license to install and use it on computers
+you own or control, for your own video work, personal or professional.
 
-2. RESTRICTIONS. You may not resell, share, sublicense or publicly
-redistribute the Software or modified copies of it.
+2. RESTRICTIONS. Please do not re-upload, redistribute or sublicense the
+Software or modified copies of it without permission. Share the download
+page instead.
 
 3. THIRD-PARTY SERVICES. The Software works with Adobe After Effects and
 with an AI provider you choose (for example Anthropic, OpenAI, Groq,
@@ -31,5 +32,3 @@ PROJECT DAMAGE OR THIRD-PARTY SERVICE CHARGES.
 
 7. TERMINATION. This license ends if you break these terms. You must then
 delete all copies.
-
-Support: test@example.com

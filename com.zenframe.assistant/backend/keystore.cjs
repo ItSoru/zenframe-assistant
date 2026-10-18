@@ -14,11 +14,11 @@ function powershellPath() {
   return path.join(root, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
 }
 
-// Runs a fixed PowerShell script; secrets travel only through stdin/stdout, never argv.
-function runPowerShell(script, input) {
+// Runs a fixed, readable PowerShell script (no -EncodedCommand, which antivirus tools flag).
+// Secrets travel only through stdin/stdout, never on the command line.
+function runPowerShell(script, input, exe) {
   return new Promise((resolve, reject) => {
-    const encoded = Buffer.from(script, 'utf16le').toString('base64');
-    const child = cp.execFile(powershellPath(), ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
+    const child = cp.execFile(exe || powershellPath(), ['-NoProfile', '-NonInteractive', '-Command', script],
       { windowsHide: true, timeout: 20000, maxBuffer: 64 * 1024 },
       (err, stdout) => {
         if (err) return reject(new Error('Windows could not process the API key securely.'));
@@ -102,4 +102,4 @@ class KeyStore {
   knownKeys() { return Object.keys(this.cache).map(k => this.cache[k]).filter(Boolean); }
 }
 
-module.exports = { KeyStore };
+module.exports = { KeyStore, runPowerShell };
