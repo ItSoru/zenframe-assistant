@@ -1,0 +1,110 @@
+[
+  {
+    "path": "com.zenframe.assistant/alive.css",
+    "sha256": "0483478651087CCFDA89D40E46D84B0D1DA26D77DD8A46E126D8EE5C52913577"
+  },
+  {
+    "path": "com.zenframe.assistant/app.js",
+    "sha256": "A9E776A2702468F9C6B77C40FEB6267A100498366EBF5E84AFF41AEE240277DA"
+  },
+  {
+    "path": "com.zenframe.assistant/backend/keystore.cjs",
+    "sha256": "3C249B51C8324FA269B86D9AA8270A2BFAE7F4E7204427229EFAEB5AED244338"
+  },
+  {
+    "path": "com.zenframe.assistant/backend/mcp.cjs",
+    "sha256": "8069A1A3B11233A378E4197FC1C6C30C577634B1FF0953BF21AC55B39CC895AF"
+  },
+  {
+    "path": "com.zenframe.assistant/backend/providers.cjs",
+    "sha256": "EE80740A6CD01902EBC9799CA51414EF06FA8165B21D44A63EB8F4CB190B77FB"
+  },
+  {
+    "path": "com.zenframe.assistant/backend/runtime.cjs",
+    "sha256": "3C2210A85D7E7B2840141EDB9206BFC39B4165BF7AFDCD064DA6652EECE1C146"
+  },
+  {
+    "path": "com.zenframe.assistant/backend/tools.cjs",
+    "sha256": "333E890AC0248ADE94B5E286065B60974A670D4172B1172A1A47098F72EA5938"
+  },
+  {
+    "path": "com.zenframe.assistant/controls.css",
+    "sha256": "AC078679ACCB5F0A7CB6313C57D026DFD3D71F6FC059AB780C27DF00BC559C6B"
+  },
+  {
+    "path": "com.zenframe.assistant/CSXS/manifest.xml",
+    "sha256": "631C3DB7B033096B6D5AAC049E8D94E4ADFBAC388F2446C4D00843C75C6C65CB"
+  },
+  {
+    "path": "com.zenframe.assistant/immersive.css",
+    "sha256": "A9B42E337B78B3FB82761A81B111B7309C7BD29E61AE1C3F75DF0A427969E744"
+  },
+  {
+    "path": "com.zenframe.assistant/index.html",
+    "sha256": "7A05A25405857A9B233984A1FE697CFF90858E8D9870B3804E915CC3010B08CB"
+  },
+  {
+    "path": "com.zenframe.assistant/jsx/host.jsx",
+    "sha256": "FA9700C7F979C74C61C9A52D23E13609A1BC8126258ECF126562D5F21D9FD342"
+  },
+  {
+    "path": "com.zenframe.assistant/motion.css",
+    "sha256": "9B2113F32F2B1B5DCB1978D29DFF820712CEA877508049A9461A20F88EE9D644"
+  },
+  {
+    "path": "com.zenframe.assistant/motion.js",
+    "sha256": "D191A3E208E43653742F8B3413214D6A88136C0499C4D144FC9203C8FF14827E"
+  },
+  {
+    "path": "com.zenframe.assistant/style.css",
+    "sha256": "3725A6F0C1E45E0A338E4E427DB41BDDBB8ABB45E933845C7EA5FDBFABDEFE44"
+  },
+  {
+    "path": "com.zenframe.assistant/theme.css",
+    "sha256": "D0CBE46CB9C45998DDAF108A53A96200892A61FDF42F4558F66305CE763CCFDD"
+  },
+  {
+    "path": "com.zenframe.assistant/theme.js",
+    "sha256": "BAEA7FCC2AEFC0AF382E509C318C1272950B5ADC92A96C92BDEA028195D08CE8"
+  },
+  {
+    "path": "Install-Zenframe-Assistant.cmd",
+    "sha256": "56A2BE6DD6602A8DFE669E244D7B97F719E20767E9A49A2F8DD9F482724F00FC"
+  },
+  {
+    "path": "Install-Zenframe-Assistant.ps1",
+    "sha256": "F279601E5CE4A3F8D34A6730B7CD66E91681E83D327C45945D3FE0984B0D2BE1"
+  },
+  {
+    "path": "LICENSE.txt",
+    "sha256": "10FB96DA579680C7665E26323DB5A412F32EDEFCEC81393AB52FA4C952C4FB5D"
+  },
+  {
+    "path": "PRIVACY.md",
+    "sha256": "94718126A8049A7EBEE656AB6CD698FD4D59C8A006FB436943B15B2696834DC5"
+  },
+  {
+    "path": "README.md",
+    "sha256": "A4D5294665D73C64290DEC090719AB4F0A505052343FA7C89CB1A9E7BB0A6DC4"
+  },
+  {
+    "path": "RELEASE-NOTES.md",
+    "sha256": "FB3E068CC6850A5DBCA07D627F226B8EA4ACEAF3359B685F19D553AA8D0FEE26"
+  },
+  {
+    "path": "START-HERE.txt",
+    "sha256": "DA4CC66CB97A10425FE57E466547D305AD0E797295DCDD782EF1F308CFF86034"
+  },
+  {
+    "path": "THIRD-PARTY-NOTICES.txt",
+    "sha256": "ED27456F286715F5299D6A6FC65E3BE9A567AC05A37E2FFE3A8551AE8269D463"
+  },
+  {
+    "path": "Uninstall-Zenframe-Assistant.cmd",
+    "sha256": "4214BB2E419C6A672197901C2AF453D69027CC32D35266090ED4FB8D0286552D"
+  },
+  {
+    "path": "Uninstall-Zenframe-Assistant.ps1",
+    "sha256": "C93BC32FBA7EE19650656D82FB2E3112802D483B1C0C9F91E26ADA5570185FAE"
+  }
+]

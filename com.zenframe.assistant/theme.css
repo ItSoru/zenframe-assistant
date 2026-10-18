@@ -1,0 +1,21 @@
+/* Accent overrides only. Background and surface colors remain unchanged. */
+:root{--accent-fill:#b4a0f7;--on-accent:#000;--accent-hover:#c0aff8;--accent-border:#594e75}
+.mark{background:linear-gradient(145deg,var(--accent-hover),var(--accent-fill));color:var(--on-accent)}
+.mark span{color:var(--on-accent)}
+.primary,.send,.badge{background:var(--accent-fill);color:var(--on-accent)}
+.primary:hover:not(:disabled),.send:hover:not(:disabled){background:var(--accent-hover)}
+.composer{border-color:var(--accent-border)}
+.appearance{border-bottom:1px solid var(--line);padding:12px 0 20px;margin-bottom:20px}
+.appearance h3,.connection-heading{font-size:13px;font-weight:600;margin:0 0 7px}
+.appearance .help{margin-bottom:12px}
+.accent-presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.accent-presets button{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.accent-presets button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.accent-presets span{width:20px;height:20px;border-radius:50%;background:var(--swatch);pointer-events:none}
+.accent-fields{display:flex;align-items:flex-end;gap:12px;margin-bottom:12px}
+.accent-fields label{display:block;font-size:11px;margin-bottom:5px}
+.accent-fields>div:last-child{flex:1;min-width:0}
+.settings #accentColor{width:48px;height:38px;padding:4px;cursor:pointer}
+.settings #accentHex{height:38px;font-family:Consolas,monospace}
+.settings #accentHex[aria-invalid="true"]{border-color:var(--error)}
+#accentStatus{margin:10px 0 0}

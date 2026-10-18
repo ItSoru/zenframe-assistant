@@ -1,0 +1,34 @@
+ZENFRAME ASSISTANT 1.0.3 - WINDOWS ONLY
+Your After Effects assistant is Zeni. Bring your own AI.
+
+Zenframe is an independent product. It is not made, endorsed or supported
+by Adobe or by any AI provider.
+
+1. Extract the entire ZIP (do not run the installer inside the ZIP).
+2. Close After Effects, then double-click Install-Zenframe-Assistant.cmd.
+   No administrator account is required.
+3. Open After Effects > Window > Extensions > Zenframe Assistant.
+4. Open Settings (gear icon) and choose a Provider:
+     Free options:  Groq, OpenRouter (tick "Show free models only"),
+                    Google Gemini, or Ollama (runs on your own PC)
+     Paid options:  Anthropic API, OpenAI, or Claude Code
+5. Paste that provider's API key and click Save key
+   (Ollama needs no key).
+6. Click Load models, pick a model, then click Save & check connection.
+7. Choose Edit project or Draft scripts and send Zeni a request.
+   In Edit project mode you approve each batch of changes before it runs.
+
+Tip: Zeni needs a model that supports tool calling. Bigger models do much
+better After Effects work than small free ones.
+
+Only if you choose the Claude Code provider: also install Node.js 18 or
+later (https://nodejs.org) and Claude Code
+(https://code.claude.com/docs/en/setup).
+
+This is an unsigned CEP panel, not a signed ZXP or Adobe Marketplace package.
+The installer turns on Adobe's per-user CEP debug mode for CSXS 9 through 13
+and remembers your original settings so the uninstaller can restore them.
+
+Requires After Effects 2022 or later. Tested on After Effects 2024.
+Read README.md for details and troubleshooting, PRIVACY.md for what data is
+sent where, and LICENSE.txt for the license terms.

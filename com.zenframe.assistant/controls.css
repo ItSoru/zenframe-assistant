@@ -1,0 +1,70 @@
+/* Zenframe 1.0.3 controls: API key settings, edit approval card, script warning. */
+
+.settings h3 { margin: 26px 0 6px; font-size: 13px; font-weight: 600; }
+.settings label { display: block; margin: 16px 0 7px; font-size: 12px; }
+#settingsView select.field {
+  display: block;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+}
+.settings code, .help code {
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #111115;
+  font: 11px/1.5 Consolas, monospace;
+  color: var(--text);
+}
+.row-buttons { display: flex; gap: 8px; margin: 10px 0 4px; }
+.row-buttons button { flex: 1; padding: 8px 10px; font-size: 12px; }
+.settings label.check { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+.settings label.check input { width: auto; margin: 0; accent-color: var(--accent-fill); }
+.version-line { margin-top: 18px; }
+.version-line a { color: var(--accent); margin-left: 8px; }
+
+/* Edit approval card in the conversation */
+.confirm-card {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--accent-border);
+  border-radius: 10px;
+  background: #0c0b10;
+}
+.confirm-card .confirm-title {
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .8px;
+  color: var(--accent);
+}
+.confirm-card ol { margin: 0 0 10px; padding-left: 18px; font-size: 12px; line-height: 1.6; }
+.confirm-card li { overflow-wrap: anywhere; }
+.confirm-card .confirm-note { font-size: 11px; color: var(--muted); margin: 0 0 10px; }
+.confirm-actions { display: flex; gap: 8px; }
+.confirm-actions button { flex: 1; padding: 8px 10px; font-size: 12px; }
+.confirm-card.resolved .confirm-actions { display: none; }
+.confirm-card .confirm-outcome { font-size: 11px; color: var(--muted); }
+.confirm-card.approved .confirm-outcome { color: var(--green); }
+.confirm-card.declined .confirm-outcome { color: var(--error); }
+
+/* Risky script warning */
+.script-warning {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--error);
+  border-radius: 8px;
+  background: rgba(255, 90, 90, .06);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.script-warning strong { color: var(--error); }
+#cancelRisky { display: block; width: 100%; margin: 8px 0 0; }

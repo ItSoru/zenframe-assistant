@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Zenframe Assistant</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="immersive.css">
+<link rel="stylesheet" href="motion.css">
+<link rel="stylesheet" href="alive.css">
+<link rel="stylesheet" href="controls.css">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="mark" aria-hidden="true">z<span>·</span></span><div><strong>zenframe<span class="muted"> / assistant</span></strong><small>YOUR AFTER EFFECTS COPILOT</small></div></div>
+  <button id="newChat" class="icon" title="New conversation" aria-label="New conversation">＋</button>
+  <button id="settingsButton" class="icon" title="Settings" aria-label="Settings">⚙</button>
+</header>
+
+<nav aria-label="Workspace">
+  <div class="tab-track"><button class="tab active" data-view="chat">Conversation</button><button class="tab" data-view="scripts">Scripts <span id="scriptBadge" class="badge" hidden>1</span></button></div>
+  <span id="connection" class="connection">Checking…</span>
+</nav>
+
+<div class="context"><span class="context-icon" aria-hidden="true">▣</span><span id="contextName">After Effects</span><button id="refreshContext" class="icon" title="Refresh composition context" aria-label="Refresh composition context">↻</button></div>
+
+<div class="workspace">
+  <main id="chatView" class="view active">
+    <div id="messages" role="log" aria-label="Conversation" aria-live="polite">
+      <section id="welcome">
+        <div class="eyebrow">MAKE ROOM FOR THE IDEA</div>
+        <h1>Less clicking.<br><span>More creating.</span></h1>
+        <p>Meet Zeni. Work with your composition, or turn an idea into a script. Right here in After Effects.</p>
+        <div class="suggestions">
+          <button data-prompt="Inspect my active composition and suggest improvements. In this first reply, only explain; don't change anything."><span>01</span> Explore this composition <b>↗</b></button>
+          <button data-prompt="Create a text layer that says ZENFRAME in my active composition, and animate its opacity from 0 to 100 over one second at the playhead."><span>02</span> Animate a title <b>↗</b></button>
+          <button data-prompt="Draft an ExtendScript that staggers the selected layers by 3 frames. Stage it for review without running it." data-mode="script"><span>03</span> Build a useful script <b>↗</b></button>
+        </div>
+        <div class="welcome-foot">Your tools. Your timeline. Your flow.</div>
+      </section>
+    </div>
+    <div id="activity" role="status" hidden></div>
+    <div class="compose-wrap">
+      <div class="composer">
+        <label for="prompt" class="sr-only">Message Zeni</label>
+        <textarea id="prompt" rows="3" placeholder="Ask Zeni. What are we making?" spellcheck="true"></textarea>
+        <div class="compose-controls">
+          <label class="sr-only" for="mode">Working mode</label>
+          <select id="mode"><option value="edit">Edit project</option><option value="script">Draft scripts</option></select>
+          <label class="sr-only" for="model">Claude model</label>
+          <select id="model"><option value="default">Default model</option><option value="sonnet">Sonnet</option><option value="opus">Opus</option></select>
+          <button id="send" class="send" aria-label="Send message" title="Send message">↑</button>
+          <button id="stop" class="send" aria-label="Stop reply" title="Stop reply" hidden>■</button>
+        </div>
+      </div>
+      <div class="composer-note"><span id="modeNote">Edits wait for your approval · Undo in AE</span><span>↵ Send</span></div>
+    </div>
+  </main>
+
+  <main id="scriptsView" class="view">
+    <div class="script-top"><div><div class="eyebrow">REVIEW BEFORE RUNNING</div><h2 id="scriptTitle">Script workspace</h2></div><button id="copyScript" class="secondary">Copy</button></div>
+    <p id="scriptExplanation" class="help">Ask for a script in the conversation, or paste your own JSX below.</p>
+    <label for="scriptCode" class="sr-only">ExtendScript source</label>
+    <textarea id="scriptCode" spellcheck="false" placeholder="// Your ExtendScript appears here…"></textarea>
+    <div class="script-bottom">
+      <p class="help">Runs with After Effects scripting permissions. Check the code before running. Project edits are grouped for Undo; file changes are not.</p>
+      <div id="scriptWarning" class="script-warning" role="alert" hidden></div>
+      <button id="runScript" class="primary">Run in After Effects <span>↗</span></button>
+      <button id="cancelRisky" class="secondary" hidden>Cancel</button>
+      <div id="scriptResult" role="status"></div>
+    </div>
+  </main>
+</div>
+
+<section id="settingsView" class="settings" hidden aria-label="Settings">
+  <div class="script-top"><h2>Settings</h2><button id="closeSettings" class="icon" aria-label="Close settings">×</button></div>
+
+  <h3 class="connection-heading">AI provider</h3>
+  <p class="help">Bring your own AI. Zenframe has no servers: requests go straight from your computer to the provider you choose, under your own account and its pricing or free tier.</p>
+
+  <label for="provider">Provider</label>
+  <select id="provider" class="field">
+    <option value="claude-code">Claude Code (installed on this PC)</option>
+    <option value="anthropic">Anthropic API</option>
+    <option value="openai">OpenAI</option>
+    <option value="groq">Groq (free tier)</option>
+    <option value="openrouter">OpenRouter (has free models)</option>
+    <option value="gemini">Google Gemini (free tier)</option>
+    <option value="ollama">Ollama (local, free)</option>
+    <option value="custom">Custom (OpenAI-compatible)</option>
+  </select>
+
+  <div id="claudeCodeGroup">
+    <label for="authMode">How Claude Code signs in</label>
+    <select id="authMode" class="field">
+      <option value="apikey">My Anthropic API key (recommended)</option>
+      <option value="claude">My own Claude Code login</option>
+    </select>
+    <div id="loginGroup" hidden>
+      <p class="help">Sign in with Claude Code itself: open Command Prompt and run <code>claude auth login</code>, then finish the sign-in in your browser. Zenframe never sees or stores your login.</p>
+    </div>
+  </div>
+
+  <div id="apiKeyGroup">
+    <label for="apiKey" id="apiKeyLabel">API key</label>
+    <input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key">
+    <div class="row-buttons">
+      <button id="saveKey" type="button" class="secondary">Save key</button>
+      <button id="removeKey" type="button" class="secondary">Remove key</button>
+    </div>
+    <p id="keyStatus" class="help" role="status"></p>
+    <p id="keyHelp" class="help">Each provider's key is encrypted for your Windows account and only sent to that provider. It is never shown, logged, or sent anywhere else.</p>
+  </div>
+
+  <div id="directGroup" hidden>
+    <label for="baseUrl">Base URL</label>
+    <input id="baseUrl" spellcheck="false">
+    <label for="modelName">Model</label>
+    <input id="modelName" list="modelList" spellcheck="false" autocomplete="off" placeholder="Click Load models, then pick one">
+    <datalist id="modelList"></datalist>
+    <label class="check" id="freeOnlyRow" hidden><input id="freeOnly" type="checkbox" checked> Show free models only</label>
+    <div class="row-buttons">
+      <button id="loadModels" type="button" class="secondary">Load models</button>
+    </div>
+    <p id="modelStatus" class="help" role="status"></p>
+    <p class="help">Zeni needs a model that supports tool calling. Free and small models are less reliable at After Effects edits than larger ones, so keep edit approval on.</p>
+  </div>
+
+  <div id="pathsGroup">
+    <label for="claudePath">Claude Code executable</label>
+    <input id="claudePath" spellcheck="false">
+    <label for="nodePath">Node.js executable</label>
+    <input id="nodePath" spellcheck="false">
+    <div class="row-buttons">
+      <button id="detectPaths" type="button" class="secondary">Detect again</button>
+    </div>
+  </div>
+  <button id="saveSettings" class="primary">Save &amp; check connection</button>
+  <p id="settingsStatus" role="status" class="help"></p>
+
+  <h3>Safety</h3>
+  <label class="check"><input id="confirmEdits" type="checkbox" checked> Ask me before Zeni applies project edits</label>
+  <p class="help">When on, every batch of edits is shown to you first with Apply and Decline buttons.</p>
+
+  <section class="appearance" aria-labelledby="appearanceTitle">
+    <h3 id="appearanceTitle">Accent color</h3>
+    <p class="help">Change the highlight color. The black background stays the same.</p>
+    <div class="accent-presets" role="group" aria-label="Accent presets">
+      <button type="button" data-accent="#b4a0f7" aria-label="Violet" title="Violet" aria-pressed="true"><span style="--swatch:#b4a0f7" aria-hidden="true"></span></button>
+      <button type="button" data-accent="#56c8e8" aria-label="Ice blue" title="Ice blue" aria-pressed="false"><span style="--swatch:#56c8e8" aria-hidden="true"></span></button>
+      <button type="button" data-accent="#6ed7aa" aria-label="Mint" title="Mint" aria-pressed="false"><span style="--swatch:#6ed7aa" aria-hidden="true"></span></button>
+      <button type="button" data-accent="#f29bb8" aria-label="Rose" title="Rose" aria-pressed="false"><span style="--swatch:#f29bb8" aria-hidden="true"></span></button>
+      <button type="button" data-accent="#efbd74" aria-label="Amber" title="Amber" aria-pressed="false"><span style="--swatch:#efbd74" aria-hidden="true"></span></button>
+    </div>
+    <div class="accent-fields">
+      <div><label for="accentColor">Custom color</label><input id="accentColor" type="color" value="#b4a0f7"></div>
+      <div><label for="accentHex">Hex color</label><input id="accentHex" type="text" value="#b4a0f7" maxlength="7" spellcheck="false" autocomplete="off" aria-describedby="accentStatus"></div>
+    </div>
+    <button id="resetAccent" type="button" class="secondary">Reset to violet</button>
+    <p id="accentStatus" class="help" role="status"></p>
+  </section>
+
+  <div class="settings-note">
+    <strong>Local panel. Your own AI.</strong>
+    <p>Prompts and the project details Zeni reads (comp names, layer names, properties) are sent to the AI provider you chose to generate replies. Media files are not uploaded. Zenframe has no servers and collects no analytics.</p>
+    <p>Zenframe is an independent product. It is not made, endorsed or supported by Adobe or by any AI provider.</p>
+  </div>
+  <button id="clearHistory" class="secondary">Clear local conversation</button>
+  <p class="help">Clears this panel's messages and starts a new session.</p>
+  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.0.3</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
+</section>
+
+<footer><span><i></i> ZENFRAME</span><span>Unofficial · bring your own AI</span></footer>
+<script src="theme.js"></script>
+<script src="motion.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

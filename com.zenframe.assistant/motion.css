@@ -1,0 +1,187 @@
+/* Zenframe motion, v1.0.3. Written from scratch for this release.
+   Works with motion.js, which toggles: .tab-indicator, .tab-track.is-animating,
+   .view.is-exiting (+ --pane-in / --pane-out), .settings.is-open. */
+
+:root {
+  --zm-spring: cubic-bezier(.2, .9, .3, 1);
+  --zm-soft: cubic-bezier(.4, 0, .2, 1);
+  --zm-fast: 160ms;
+  --zm-mid: 280ms;
+  --zm-slow: 440ms;
+}
+
+/* Base: kill legacy pseudo-element decorations from style.css. */
+button::before, .tab::after { content: none; }
+
+/* ---------- Buttons: soft accent glow that follows hover ---------- */
+.suggestions button, .primary, .secondary, .send, .icon,
+.accent-presets button, .code-actions button, .confirm-actions button {
+  position: relative;
+  isolation: isolate;
+  transition: background var(--zm-fast) var(--zm-soft),
+              border-color var(--zm-fast) var(--zm-soft),
+              color var(--zm-fast) var(--zm-soft),
+              box-shadow var(--zm-mid) var(--zm-soft),
+              transform var(--zm-mid) var(--zm-spring);
+}
+.suggestions button::after, .primary::after, .secondary::after, .send::after,
+.code-actions button::after, .confirm-actions button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(120% 140% at 50% 120%, rgba(var(--accent-rgb), .28), transparent 60%);
+  transition: opacity var(--zm-mid) var(--zm-soft);
+}
+.suggestions button:hover:not(:disabled)::after, .primary:hover:not(:disabled)::after,
+.secondary:hover:not(:disabled)::after, .send:hover:not(:disabled)::after,
+.code-actions button:hover:not(:disabled)::after, .confirm-actions button:hover:not(:disabled)::after {
+  opacity: 1;
+}
+
+.suggestions button {
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+}
+.suggestions button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--accent-border);
+  background: #0f0e13;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+.primary, .send {
+  border: 1px solid var(--accent-border);
+  border-radius: 10px;
+  color: var(--on-accent);
+  background: var(--accent-fill);
+  box-shadow: 0 2px 10px rgba(var(--accent-rgb), .2);
+}
+.primary:hover:not(:disabled), .send:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 18px rgba(var(--accent-rgb), .3);
+}
+.primary:active:not(:disabled), .send:active:not(:disabled),
+.secondary:active:not(:disabled), .icon:active:not(:disabled) {
+  transform: scale(.97);
+}
+
+.secondary { border-radius: 9px; }
+.secondary:hover:not(:disabled) { background: #121117; border-color: var(--accent-border); }
+
+.icon:hover:not(:disabled) {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), .14);
+}
+
+.mark { transition: box-shadow var(--zm-slow) var(--zm-soft); }
+.mark:hover { box-shadow: 0 0 28px rgba(var(--accent-rgb), .3); }
+
+/* ---------- Tabs: sliding pill behind the active tab ---------- */
+nav { padding: 8px 14px; gap: 10px; min-height: 58px; flex-shrink: 0; }
+.tab-track {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  max-width: 320px;
+  height: 40px;
+  padding: 4px;
+  border: 1px solid #27242d;
+  border-radius: 999px;
+  background: #000;
+}
+.tab-track .tab {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 22px;
+  white-space: nowrap;
+  color: var(--muted);
+  transition: color var(--zm-mid) var(--zm-soft);
+}
+.tab-track .tab:hover:not(:disabled) { background: transparent; color: var(--text); }
+.tab-track .tab.active { color: var(--on-accent); font-weight: 600; }
+.tab-indicator {
+  position: absolute;
+  z-index: 0;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: 50%;
+  border-radius: 999px;
+  pointer-events: none;
+  background: var(--accent-fill);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), .2);
+  transition: left var(--zm-slow) var(--zm-spring), width var(--zm-slow) var(--zm-spring);
+}
+.tab-track.is-animating .tab-indicator { animation: zm-pill-pulse var(--zm-slow) var(--zm-soft); }
+@keyframes zm-pill-pulse {
+  0%   { box-shadow: 0 0 0 rgba(var(--accent-rgb), 0); }
+  50%  { box-shadow: 0 0 22px rgba(var(--accent-rgb), .35); }
+  100% { box-shadow: 0 0 14px rgba(var(--accent-rgb), .2); }
+}
+
+/* ---------- Panes: chat <-> scripts slide ---------- */
+.workspace { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.workspace .view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(var(--pane-in, 16px), 0, 0);
+  transition: opacity var(--zm-mid) var(--zm-soft),
+              transform var(--zm-slow) var(--zm-spring),
+              visibility 0s linear var(--zm-slow);
+}
+.workspace .view.active {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  transition-delay: 0s;
+}
+.workspace .view.is-exiting {
+  visibility: visible;
+  opacity: 0;
+  transform: translate3d(var(--pane-out, -16px), 0, 0);
+  transition-delay: 0s;
+}
+
+/* ---------- Settings sheet ---------- */
+.settings {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity var(--zm-mid) var(--zm-soft), transform var(--zm-mid) var(--zm-spring);
+}
+.settings.is-open { opacity: 1; pointer-events: auto; transform: none; }
+
+/* ---------- Conversation ---------- */
+.message, .confirm-card { animation: zm-rise var(--zm-mid) var(--zm-spring) both; }
+@keyframes zm-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.tool { transition: border-color var(--zm-fast) var(--zm-soft); }
+.tool:hover { border-color: var(--accent-border); }
+
+@media (max-width: 345px) {
+  nav { padding-left: 11px; padding-right: 11px; gap: 6px; }
+  .tab-track .tab { padding-left: 4px; padding-right: 4px; font-size: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .workspace .view, .settings { transform: none; }
+  .workspace .view.is-exiting { visibility: hidden; }
+  .suggestions button:hover:not(:disabled) { transform: none; }
+}

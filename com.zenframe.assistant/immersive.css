@@ -1,0 +1,58 @@
+/* Pure-black canvas with accent-aware interaction lighting. No external assets. */
+:root{--bg:#000000;--surface:#000000;--raised:#101014;--line:#25252b;--accent-rgb:180,160,247;--text:#f2f1f6;--muted:#aba8b5}
+body,.settings,header,nav,.context,footer,.composer,.suggestions button,.message.user,.tool,.message pre,#scriptCode,.settings input,.accent-presets button{background:#000000;background-image:none}
+header{padding-top:19px;padding-bottom:17px;border-bottom-color:#1c1c22}
+.brand{gap:12px}.brand strong{letter-spacing:.05px}.brand small{letter-spacing:1.8px;color:#9e99ad}
+.mark{border-radius:12px;box-shadow:0 0 24px rgba(var(--accent-rgb),.12),inset 0 1px 0 #ffffff50;transform:rotate(-4deg)}
+nav{gap:22px;border-bottom-color:#1d1d23}.tab{padding:13px 2px 12px}
+.tab.active:after{height:2px;border-radius:2px;box-shadow:0 0 12px rgba(var(--accent-rgb),.6)}
+.context{padding-top:6px;padding-bottom:6px;border-color:#17171d}.context-icon{filter:drop-shadow(0 0 5px rgba(var(--accent-rgb),.35))}
+.connection.ready{position:relative;padding-left:10px}.connection.ready:before{content:'';position:absolute;left:0;top:50%;width:4px;height:4px;border-radius:50%;background:var(--green);box-shadow:0 0 7px #a0d8bd50;transform:translateY(-50%)}
+#welcome{padding-top:38px}.eyebrow{letter-spacing:2px;font-size:9px}h1{font-size:35px;letter-spacing:-1.3px;line-height:1.13;margin-top:17px}
+h1 span{text-shadow:0 0 30px rgba(var(--accent-rgb),.16)}
+.suggestions{gap:9px}.suggestions button{padding:14px 12px;border-color:#25252c;border-radius:11px;box-shadow:inset 0 1px 0 #ffffff05}
+.suggestions button span{color:#9c97a8}.suggestions button b{transition:transform .22s cubic-bezier(.2,.8,.2,1),color .18s}
+.suggestions button:hover:not(:disabled) b{transform:translate(2px,-2px)}
+.welcome-foot{font-size:10px;color:#93909d;margin-top:23px}
+button{position:relative;isolation:isolate;overflow:hidden;transition:background .18s ease,border-color .18s ease,box-shadow .22s ease,transform .16s ease,color .18s ease;-webkit-tap-highlight-color:transparent}
+/* Cursor-position spotlight is independent of hit targets and text layout. */
+button:before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(circle 100px at var(--pointer-x,50%) var(--pointer-y,50%),rgba(var(--accent-rgb),.19),rgba(var(--accent-rgb),.055) 46%,transparent 76%);opacity:0;transition:opacity .2s ease;z-index:-1}
+button:hover:not(:disabled):before,button:focus-visible:before{opacity:1}
+button:hover:not(:disabled){background-color:#0b0b10;box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),.22)}
+.suggestions button:hover:not(:disabled),.secondary:hover:not(:disabled),.accent-presets button:hover:not(:disabled){border-color:var(--accent-border);box-shadow:0 0 20px rgba(var(--accent-rgb),.075),inset 0 0 0 1px rgba(var(--accent-rgb),.1);transform:translateY(-1px)}
+button:active:not(:disabled){transform:scale(.975)}
+.tab:hover:not(:disabled){background:transparent;box-shadow:none;color:var(--text)}
+.tab:before{border-radius:5px}.icon:hover:not(:disabled){color:var(--accent)}
+.primary,.send{background:var(--accent-fill);box-shadow:0 2px 16px rgba(var(--accent-rgb),.1)}
+.primary:hover:not(:disabled),.send:hover:not(:disabled){background:var(--accent-hover);box-shadow:0 0 22px rgba(var(--accent-rgb),.27),inset 0 1px 0 #ffffff40}
+.primary:before,.send:before{background:radial-gradient(circle 75px at var(--pointer-x,50%) var(--pointer-y,50%),#ffffff48,transparent 75%)}
+.send{border-radius:9px;width:34px;height:32px}.secondary{border-radius:8px;padding:8px 12px}
+.compose-wrap{padding:10px 14px 11px}.composer{border-radius:14px;border-color:#39323f;box-shadow:0 0 0 1px #ffffff03,inset 0 1px 0 #ffffff06;transition:box-shadow .25s ease,border-color .2s ease}
+.composer:hover{border-color:var(--accent-border)}
+.composer:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px rgba(var(--accent-rgb),.16),0 0 26px rgba(var(--accent-rgb),.1)}
+#prompt{padding:14px 14px 6px;min-height:82px}.compose-controls{padding:5px 10px 10px}select{border-radius:7px;transition:background .18s,border-color .18s,box-shadow .2s}
+select:hover:not(:disabled){background:#0d0d12;border-color:#2d2836}select:focus{border-color:var(--accent-border)}
+select option{background:#000000}.composer-note{margin-top:9px;color:#aaa5b4}
+footer{background:#000000;border-color:#18181e;padding-top:9px;padding-bottom:9px}footer i{box-shadow:0 0 7px rgba(var(--accent-rgb),.5)}
+.message{animation:message-arrive .22s ease-out both}.message.user{border-color:#2a2632;border-radius:12px}
+.message pre,#scriptCode{border-color:#28262f;border-radius:10px}.tool{border-color:#26242e;border-radius:9px}
+.tool summary{padding:2px;border-radius:4px;transition:color .18s,background .18s}.tool summary:hover{color:var(--text)}
+.tool[open]{border-color:var(--accent-border)}
+.settings{padding:22px;animation:settings-arrive .2s ease-out}.settings input{border-color:#302b39;transition:border-color .18s,box-shadow .2s}
+.settings input:hover{border-color:var(--accent-border)}.settings input:focus{border-color:var(--accent);box-shadow:0 0 15px rgba(var(--accent-rgb),.08)}
+.accent-presets button[aria-pressed="true"]{background:#09080c;box-shadow:0 0 0 1px var(--accent),0 0 16px rgba(var(--accent-rgb),.12)}
+.accent-presets span{box-shadow:inset 0 1px 0 #ffffff50}.appearance{border-bottom-color:#27232e}.script-top h2{letter-spacing:-.3px}
+#activity:not([hidden]){display:flex;align-items:center;gap:9px;padding-top:10px}
+#activity:before{content:'';width:5px;height:5px;flex-shrink:0;background:var(--accent);border-radius:50%;box-shadow:0 0 10px rgba(var(--accent-rgb),.7);animation:working-pulse 1.6s ease-in-out infinite}
+.click-ripple{position:absolute;width:var(--ripple-size);height:var(--ripple-size);left:var(--ripple-x);top:var(--ripple-y);border-radius:50%;background:rgba(var(--accent-rgb),.25);pointer-events:none;animation:ripple-out .52s cubic-bezier(.16,.7,.3,1) forwards;z-index:-1}
+.primary .click-ripple,.send .click-ripple{background:#ffffff40}
+.keyboard-navigation button:focus,.keyboard-navigation select:focus,.keyboard-navigation input:focus,.keyboard-navigation summary:focus{outline:2px solid var(--accent);outline-offset:3px}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:#000000}::-webkit-scrollbar-thumb{background:#36313f;border-radius:5px}::-webkit-scrollbar-thumb:hover{background:var(--accent-border)}
+::selection{background:rgba(var(--accent-rgb),.3);color:#ffffff}
+@keyframes message-arrive{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@keyframes settings-arrive{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ripple-out{from{transform:translate(-50%,-50%) scale(0);opacity:1}to{transform:translate(-50%,-50%) scale(1);opacity:0}}
+@keyframes working-pulse{0%,100%{opacity:.45;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+@media(max-height:600px){#welcome{padding-top:18px}h1{font-size:29px}.suggestions button{padding:9px 12px}.context{padding-top:3px;padding-bottom:3px}header{padding-top:12px;padding-bottom:12px}#prompt{min-height:66px}}
+@media(max-width:345px){h1{font-size:30px}nav{gap:14px}.settings{padding:18px}.compose-controls{gap:2px}.send{width:30px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.suggestions button:hover:not(:disabled),.secondary:hover:not(:disabled),.accent-presets button:hover:not(:disabled),button:active:not(:disabled){transform:none}.suggestions button:hover:not(:disabled) b{transform:none}.click-ripple{display:none}}
