@@ -28,6 +28,13 @@
 .settings label.check input { width: auto; margin: 0; accent-color: var(--accent-fill); }
 .version-line { margin-top: 18px; }
 .version-line a { color: var(--accent); margin-left: 8px; }
+.update-settings { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.update-settings .version-line { margin-top: 0; }
+#updateStatus { margin: 6px 0 10px; }
+#updateStatus:empty { display: none; }
+#updateButton.ready { background: var(--accent); color: #231b31; border-color: var(--accent); font-weight: 600; }
+.update-pill { font-size: 9px; letter-spacing: .3px; color: #231b31; background: var(--accent); border-radius: 999px; padding: 2px 9px; }
+.update-pill:hover:not(:disabled) { background: #d0bcff; }
 
 /* Edit approval card in the conversation */
 .confirm-card {

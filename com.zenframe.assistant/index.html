@@ -288,10 +288,15 @@
   </div>
   <button id="clearHistory" class="secondary">Delete all conversations</button>
   <p class="help">Deletes every conversation saved in this panel. To remove just one, close its tab.</p>
-  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.5.1</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
+  <section class="update-settings" aria-labelledby="updateTitle">
+    <h3 id="updateTitle">Updates</h3>
+    <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.5.2</span></p>
+    <p id="updateStatus" class="help" role="status"></p>
+    <button id="updateButton" class="secondary">Check for updates</button>
+  </section>
 </section>
 
-<footer><span><i></i> ZENFRAME</span><span>Unofficial · bring your own AI</span></footer>
+<footer><span><i></i> ZENFRAME</span><button id="updatePill" class="update-pill" hidden></button><span>Unofficial · bring your own AI</span></footer>
 <script src="theme.js"></script>
 <script src="wallpaper.js"></script>
 <script src="motion.js"></script>

@@ -1,4 +1,4 @@
-# Zenframe Assistant 1.5.1
+# Zenframe Assistant 1.5.2
 
 ## Zeni companion
 
@@ -130,7 +130,9 @@ See **PRIVACY.md**. In short: prompts, the project details Zeni reads and any fi
 
 ## Update and uninstall
 
-- **Update:** close AE and run the new version's installer. Your settings and saved keys are kept.
+- **Update from the panel:** Settings > Updates > **Check for updates**. When a new version is out (a small **Update** button also shows at the bottom of the panel), click **Update to** that version. Zeni downloads it from the official GitHub releases, checks it, and installs it as soon as you close After Effects, then reopens After Effects.
+- **Update from a downloaded ZIP:** extract it and double-click **Update-Zenframe-Assistant.cmd**. It replaces your installed version with the one in that folder. If After Effects is open, it waits for you to close it, installs, then reopens After Effects.
+- Your settings, conversations and saved keys are kept either way.
 - **Uninstall:** close AE and run **Uninstall-Zenframe-Assistant.cmd**. It moves the panel to a recoverable backup in `%LOCALAPPDATA%\ZenframeAssistant\install-backups`, offers to restore your original Adobe debug settings, and offers to delete your saved keys.
 
 Installation folder: `%APPDATA%\Adobe\CEP\extensions\com.zenframe.assistant`.

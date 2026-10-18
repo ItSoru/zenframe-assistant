@@ -1,10 +1,8 @@
-/* Zenframe Assistant panel, v1.5.1. */
+/* Zenframe Assistant panel, v1.5.2. */
 (function () {
   'use strict';
 
-  var VERSION = '1.5.1';
-  // Set this to your download page to show a "Check for updates" link in Settings.
-  var UPDATE_URL = '';
+  var VERSION = '1.5.2';
   var MAX_CONVS = 20, MAX_MESSAGES = 80, PRIOR_MESSAGES = 16, MAX_SAVED_CHARS = 20000;
   var warnedStorage = false;
 
@@ -690,6 +688,8 @@
         var root = nativeCEP.getSystemPath('extension');
         if (/^file:/i.test(root)) root = url.fileURLToPath ? url.fileURLToPath(root) : decodeURIComponent(root.replace(/^file:\/\//i, '').replace(/^\/([A-Za-z]:)/, '$1'));
         var backend = nodeRequire(path.join(root, 'backend', 'runtime.cjs'));
+        extRoot = root;
+        try { updater = nodeRequire(path.join(root, 'backend', 'updater.cjs')); } catch (e) { updater = null; }
         PRESETS = backend.PRESETS || {};
         if (backend.EFFORT_LEVELS) EFFORT_LEVELS = backend.EFFORT_LEVELS;
         if (backend.CLAUDE_CODE_MODELS) CC_MODELS = backend.CLAUDE_CODE_MODELS;
@@ -740,7 +740,8 @@
       openSettings: function () { window.ZenframeMotion.settings(true); }
     });
     $('versionLabel').textContent = VERSION;
-    if (UPDATE_URL) $('updatesLink').hidden = false;
+    // Quietly look for a new version when the panel opens; a pill in the footer shows when one is out.
+    setTimeout(function () { checkForUpdates(true); }, 4000);
     setApproval(settings.confirmEdits !== false);
     var script = readStore('script', null);
     if (script) stage(script);
@@ -863,10 +864,50 @@
     try { runtime.removeKey(settings.provider); $('keyStatus').textContent = 'Key removed from this computer.'; check(); if (window.ZenframeVoice) window.ZenframeVoice.refresh(); }
     catch (e) { $('keyStatus').textContent = e.message; }
   };
-  $('updatesLink').onclick = function (e) {
-    e.preventDefault();
-    if (UPDATE_URL && window.cep && window.cep.util && window.cep.util.openURLInDefaultBrowser) window.cep.util.openURLInDefaultBrowser(UPDATE_URL);
+  /* ---------- Updates (1.5.2) ---------- */
+  var updater = null, updateInfo = null, updatePoll = 0, extRoot = '';
+  function updateUI(text, buttonText, ready) {
+    $('updateStatus').textContent = text || '';
+    if (buttonText) $('updateButton').textContent = buttonText;
+    $('updateButton').classList.toggle('ready', !!ready);
+  }
+  function showUpdatePill() {
+    var pill = $('updatePill');
+    pill.hidden = !(updateInfo && updateInfo.available);
+    if (!pill.hidden) pill.textContent = 'Update ' + updateInfo.latest;
+  }
+  async function checkForUpdates(quiet) {
+    if (!updater) { if (!quiet) updateUI('Open the panel inside After Effects to check for updates.'); return; }
+    if (!quiet) { $('updateButton').disabled = true; updateUI('Checking GitHub for a new version...'); }
+    try {
+      updateInfo = await updater.check(VERSION);
+      store('updateCheckedAt', Date.now());
+      showUpdatePill();
+      if (updateInfo.available) updateUI('Version ' + updateInfo.latest + ' is available.', 'Update to ' + updateInfo.latest, true);
+      else if (!quiet) updateUI('You have the latest version.', 'Check for updates');
+    } catch (e) { if (!quiet) updateUI(e.message, 'Check for updates'); }
+    finally { $('updateButton').disabled = false; }
+  }
+  function watchUpdate() {
+    clearInterval(updatePoll);
+    updatePoll = setInterval(function () {
+      var s = updater.readStatus();
+      if (!s) return;
+      if (s.state === 'error') { clearInterval(updatePoll); $('updateButton').disabled = false; updateUI('Update stopped: ' + s.message, 'Try again', true); return; }
+      if (s.state === 'current') { clearInterval(updatePoll); $('updateButton').disabled = false; updateUI(s.message, 'Check for updates'); return; }
+      if (s.state === 'ready') { updateUI('Version ' + s.version + ' is downloaded and checked. Save your project and close After Effects: the update installs and After Effects reopens by itself.', 'Waiting for After Effects to close'); return; }
+      updateUI(s.message, 'Updating...');
+    }, 1500);
+  }
+  $('updateButton').onclick = function () {
+    if (!updater) { updateUI('Open the panel inside After Effects to update.'); return; }
+    if (!(updateInfo && updateInfo.available)) { checkForUpdates(false); return; }
+    $('updateButton').disabled = true;
+    updateUI('Starting the update...', 'Updating...');
+    try { updater.start(extRoot); watchUpdate(); }
+    catch (e) { $('updateButton').disabled = false; updateUI(e.message, 'Try again', true); }
   };
+  $('updatePill').onclick = function () { window.ZenframeMotion.settings(true); setTimeout(function () { $('updateTitle').scrollIntoView({ block: 'center' }); }, 60); };
   $('scriptCode').oninput = function () {
     resetRiskWarning();
     store('script', { title: $('scriptTitle').textContent, explanation: $('scriptExplanation').textContent, code: $('scriptCode').value });

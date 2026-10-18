@@ -1,4 +1,4 @@
-/* Zenframe Assistant host bridge, v1.5.1. ES3 for After Effects ExtendScript. */
+/* Zenframe Assistant host bridge, v1.5.2. ES3 for After Effects ExtendScript. */
 var ZenframeAssistant = (function () {
 
   var effectCache = null;

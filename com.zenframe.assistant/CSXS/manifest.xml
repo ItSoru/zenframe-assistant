@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.zenframe.assistant" ExtensionBundleVersion="1.5.1" ExtensionBundleName="Zenframe Assistant">
- <ExtensionList><Extension Id="com.zenframe.assistant.panel" Version="1.5.1"/></ExtensionList>
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.zenframe.assistant" ExtensionBundleVersion="1.5.2" ExtensionBundleName="Zenframe Assistant">
+ <ExtensionList><Extension Id="com.zenframe.assistant.panel" Version="1.5.2"/></ExtensionList>
  <ExecutionEnvironment><HostList><Host Name="AEFT" Version="[22.0,99.9]"/></HostList><LocaleList><Locale Code="All"/></LocaleList><RequiredRuntimeList><RequiredRuntime Name="CSXS" Version="9.0"/></RequiredRuntimeList></ExecutionEnvironment>
  <DispatchInfoList><Extension Id="com.zenframe.assistant.panel"><DispatchInfo><Resources><MainPath>./index.html</MainPath><ScriptPath>./jsx/host.jsx</ScriptPath><CEFCommandLine><Parameter>--enable-nodejs</Parameter><Parameter>--mixed-context</Parameter><Parameter>--enable-media-stream</Parameter></CEFCommandLine></Resources><Lifecycle><AutoVisible>true</AutoVisible></Lifecycle><UI><Type>Panel</Type><Menu>Zenframe Assistant</Menu><Geometry><Size><Width>440</Width><Height>740</Height></Size><MinSize><Width>300</Width><Height>420</Height></MinSize></Geometry></UI></DispatchInfo></Extension></DispatchInfoList>
 </ExtensionManifest>

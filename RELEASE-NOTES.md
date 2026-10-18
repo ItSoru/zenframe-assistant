@@ -1,3 +1,8 @@
+# Version 1.5.2
+
+- **Update button.** Settings > Updates > Check for updates finds the newest version on the official GitHub releases. Click Update and Zeni downloads it, checks every file, and installs it as soon as you close After Effects, then reopens After Effects for you. When a new version is out, a small Update button shows at the bottom of the panel.
+- **Update-Zenframe-Assistant.cmd.** Included in the ZIP: double-click it to replace your installed version with the one in that folder. If After Effects is open, it waits for you to close it, installs, then reopens After Effects. Your settings, conversations and saved keys are kept.
+
 # Version 1.5.1
 
 - **Markers on the music.** Ask Zeni for markers on the hits and he puts real comp markers on the timeline, with no script. By default they go on the strong bass hits; ask for snares too, for medium or all hits, or for the beats. Zenframe finds every hit itself and places each marker on its exact frame, you approve the count first, and it is one Undo step. Markers already on the timeline are kept.

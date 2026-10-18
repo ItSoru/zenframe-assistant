@@ -1,4 +1,4 @@
-ZENFRAME ASSISTANT 1.5.1 - WINDOWS ONLY
+ZENFRAME ASSISTANT 1.5.2 - WINDOWS ONLY
 Your After Effects assistant is Zeni. Bring your own AI.
 
 Zenframe is an independent product. It is not made, endorsed or supported
@@ -18,6 +18,11 @@ by Adobe or by any AI provider.
 6. Click Load models, pick a model, then click Save & check connection.
 7. Choose Edit project or Draft scripts and send Zeni a request.
    In Edit project mode you approve each batch of changes before it runs.
+
+Updating: already have Zenframe Assistant? Double-click
+Update-Zenframe-Assistant.cmd instead of the installer. It replaces your
+installed version and keeps your settings. Inside the panel, Settings >
+Updates gets new versions straight from GitHub.
 
 Voice input: click the mic in the message box. A saved Groq key gives the
 best accuracy; without one, Windows speech recognition is used offline.
