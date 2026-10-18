@@ -1,4 +1,4 @@
-/* Zenframe Assistant host bridge, v1.4.0. ES3 for After Effects ExtendScript. */
+/* Zenframe Assistant host bridge, v1.4.1. ES3 for After Effects ExtendScript. */
 var ZenframeAssistant = (function () {
 
   var effectCache = null;
@@ -165,6 +165,8 @@ var ZenframeAssistant = (function () {
   function layerInfo(l, c) {
     var o = { compId: c.id, layerIndex: l.index, expectedName: l.name, selected: l.selected, inPoint: l.inPoint, outPoint: l.outPoint, locked: l.locked };
     try { o.source = l.source ? l.source.name : null; } catch (e) {}
+    try { if (l.source instanceof CompItem) o.precompId = l.source.id; } catch (e2) {}
+    try { if (!l.enabled) o.enabled = false; if (l.adjustmentLayer) o.adjustment = true; } catch (e3) {}
     return o;
   }
   function numbers(v, lengths) {
@@ -196,8 +198,10 @@ var ZenframeAssistant = (function () {
   }
 
   /* ---------- Context and inspection ---------- */
-  function context() {
-    var result = { projectName: app.project.file ? app.project.file.name : 'Untitled project', items: [], activeComp: null }, i, c = app.project.activeItem;
+  function context(a) {
+    a = a || {};
+    var result = { projectName: app.project.file ? app.project.file.name : 'Untitled project', items: [], activeComp: null }, i, c = a.compId ? comp(a.compId) : app.project.activeItem;
+    var from = Math.max(0, Math.floor(Number(a.layerOffset) || 0));
     for (i = 1; i <= Math.min(app.project.numItems, 100); i++) {
       var it = app.project.item(i);
       result.items.push({ id: it.id, name: it.name, type: it instanceof CompItem ? 'composition' : it instanceof FolderItem ? 'folder' : 'footage' });
@@ -205,8 +209,10 @@ var ZenframeAssistant = (function () {
     result.itemsTruncated = app.project.numItems > 100;
     if (c instanceof CompItem) {
       var co = { id: c.id, name: c.name, width: c.width, height: c.height, duration: c.duration, frameRate: c.frameRate, time: c.time, layers: [], layerCount: c.numLayers };
-      for (i = 1; i <= Math.min(c.numLayers, 100); i++) co.layers.push(layerInfo(c.layer(i), c));
-      co.layersTruncated = c.numLayers > 100;
+      for (i = from + 1; i <= Math.min(c.numLayers, from + 100); i++) co.layers.push(layerInfo(c.layer(i), c));
+      co.layersTruncated = c.numLayers > from + 100;
+      if (co.layersTruncated) co.nextLayerOffset = from + 100;
+      if (from) co.layerOffset = from;
       result.activeComp = co;
     }
     return result;
@@ -374,7 +380,7 @@ var ZenframeAssistant = (function () {
   /* ---------- Dispatch ---------- */
   function dispatch(name, a) {
     var i;
-    if (name === 'ae_get_context') return context();
+    if (name === 'ae_get_context') return context(a);
     if (name === 'ae_inspect_layer') {
       var l = layer(a.ref);
       return inspect(a.path && a.path.length ? prop(l, a.path) : l, Math.min(3, Math.max(1, a.depth || 2)), { n: 0 });

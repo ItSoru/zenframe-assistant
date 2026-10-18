@@ -168,3 +168,17 @@ html.has-wallpaper .mic-btn:not(.mic-recording), html.has-wallpaper .attach-menu
 .style-picks label { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 11.5px; cursor: pointer; }
 .style-picks label.on { border-color: var(--accent); color: var(--text); }
 .style-picks input { width: auto; margin: 0; accent-color: var(--accent); }
+/* 1.4.0: tool steps grouped in one dropdown. */
+.tool-group { margin-top: 8px; border: 1px solid #34343d; border-radius: 9px; background: var(--surface); font-size: 11px; color: var(--muted); }
+.tool-group > summary { display: flex; align-items: baseline; gap: 8px; padding: 8px 10px; cursor: pointer; list-style: none; }
+.tool-group > summary::-webkit-details-marker { display: none; }
+.tool-group > summary::before { content: ''; flex: none; width: 6px; height: 6px; margin-right: 2px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg) translateY(-1px); transition: transform .18s; align-self: center; }
+.tool-group[open] > summary::before { transform: rotate(45deg) translateY(-2px); }
+.tool-group .tg-title { flex: 0 0 auto; max-width: 72%; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tool-group .tg-count { flex: 1 1 0; color: var(--muted); font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.tool-group.running .tg-title { color: var(--accent); }
+.tool-group.has-error:not(.running) { border-left: 2px solid var(--error); }
+.tool-group:not(.running):not(.has-error) { border-left: 2px solid var(--green); }
+.tool-group .tg-list { padding: 0 8px 8px; }
+.tool-group .tg-list .tool { margin-top: 4px; padding: 5px 8px; border-radius: 6px; background: transparent; }
+@media (prefers-reduced-motion: reduce) { .tool-group > summary::before { transition: none; } }

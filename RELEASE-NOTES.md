@@ -1,3 +1,10 @@
+# Version 1.4.1
+
+- **Tidier work steps.** Back-to-back steps (reading the comp, inspecting layers, rendering frames...) sit in one dropdown. While Zeni works it shows what he is doing now and how many steps so far; when he is done it reads "Worked through 12 steps" with a breakdown such as "Inspect layer properties x9". Click it to see every step, its result and any frames he rendered.
+- Zeni can list the layers of any comp, including precomps, and pages through comps with more than 100 layers, so big projects can be read all the way down.
+- The flow AMV guide learned more from a top editor's project: clip time-remap shapes, how zooms land a frame before the cut, the easing that repeats across a rig, and how build-up shakes are timed.
+- Fixed: a long report written after many steps showed above them, out of view, so the chat looked like it ended with a list of steps. Anything Zeni writes after a step now appears below it.
+
 # Version 1.4.0
 
 - **Seeing the edit: new tool `ae_render_frames`.** Zeni asks After Effects to render up to 16 frames at the times he picks (cuts, hits, the drop, before/on/after a transition). They come back as one numbered sheet with timestamps (at most 1568 px), go to the AI with that request only, and are deleted from the temp folder. The sheet also shows in the chat under the tool line. Rendering changes nothing in the project. Works with every provider whose model reads images, including Claude Code and Codex.

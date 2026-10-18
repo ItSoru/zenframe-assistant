@@ -1,4 +1,4 @@
-# Zenframe Assistant 1.4.0
+# Zenframe Assistant 1.4.1
 
 ## Zeni companion
 

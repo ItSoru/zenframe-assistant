@@ -1,8 +1,8 @@
-/* Zenframe Assistant panel, v1.4.0. */
+/* Zenframe Assistant panel, v1.4.1. */
 (function () {
   'use strict';
 
-  var VERSION = '1.4.0';
+  var VERSION = '1.4.1';
   // Set this to your download page to show a "Check for updates" link in Settings.
   var UPDATE_URL = '';
   var MAX_CONVS = 20, MAX_MESSAGES = 80, PRIOR_MESSAGES = 16, MAX_SAVED_CHARS = 20000;
@@ -407,27 +407,66 @@
     $('activity').hidden = !v;
     $('activity').textContent = v ? 'Zeni is working…' : '';
   }
+  function toolGroup(c) {
+    var g = { el: document.createElement('details'), steps: [] };
+    g.el.className = 'tool-group running';
+    g.summary = document.createElement('summary');
+    g.title = document.createElement('span'); g.title.className = 'tg-title';
+    g.count = document.createElement('span'); g.count.className = 'tg-count';
+    g.summary.appendChild(g.title); g.summary.appendChild(g.count);
+    g.list = document.createElement('div'); g.list.className = 'tg-list';
+    g.el.appendChild(g.summary); g.el.appendChild(g.list);
+    c.el.appendChild(g.el);
+    return g;
+  }
+  // Running: what Zeni is doing now. Finished: how many steps, grouped by kind ("Inspect layer properties x9").
+  function updateGroup(g, current, finished) {
+    var n = g.steps.length, errors = g.steps.filter(function (s) { return s.status === 'error'; }).length;
+    if (finished) g.el.classList.remove('running');
+    g.el.classList.toggle('has-error', errors > 0);
+    var counts = {}, order = [];
+    g.steps.forEach(function (s) { if (!counts[s.label]) { counts[s.label] = 0; order.push(s.label); } counts[s.label]++; });
+    var kinds = order.map(function (l) { return counts[l] > 1 ? l + ' \u00d7' + counts[l] : l; }).join(' \u00b7 ');
+    var running = g.el.classList.contains('running');
+    g.title.textContent = running && current ? current + '\u2026' : running ? 'Working\u2026' : (n === 1 ? order[0] : 'Worked through ' + n + ' steps');
+    g.count.textContent = running ? (n > 1 ? n + ' steps' : '') : (n > 1 ? kinds : '') + (errors ? (n > 1 ? ' \u00b7 ' : '') + errors + ' failed' : '');
+    g.el.title = kinds;
+  }
   function onEvent(e) {
     if (window.ZenframeZeni) window.ZenframeZeni.onEvent(e);
     var c = byId(runningId) || activeConv();
     if (e.type === 'start') setBusy(true);
     if (e.type === 'text') {
-      if (!c.reply) c.reply = message(c, 'assistant', '');
-      renderBody(c.reply.body, e.data, 'assistant'); c.reply.record.text = e.data;
-      if (c.id === activeId) scroll();
+      // Text arrives as the whole reply so far. Text written after a tool runs goes in a new bubble below
+      // that tool, so the final answer shows at the bottom instead of above a long list of tool steps.
+      var full = String(e.data || ''), from = c.textUsed || 0;
+      if (full.length < from) from = 0;
+      var part = full.slice(from).replace(/^\s+/, '');
+      c.lastText = full;
+      if (part) {
+        if (!c.reply) { c.reply = message(c, 'assistant', ''); if (c.toolGroup) { updateGroup(c.toolGroup, null, true); c.toolGroup = null; } }
+        renderBody(c.reply.body, part, 'assistant'); c.reply.record.text = part;
+        if (c.id === activeId) scroll();
+      }
     }
     if (e.type === 'tool') {
       var labels = { ae_get_context: 'Read composition', ae_inspect_layer: 'Inspect layer properties', ae_search_effects: 'Find installed effects', ae_apply_actions: 'Edit project', ae_stage_script: 'Draft a script', ae_list_tools: 'Look through your installed tools', ae_open_panel: 'Open a panel', ae_run_script: 'Run your script', ae_render_frames: 'Look at rendered frames', ae_analyze_audio: 'Listen to the music', ae_style_guide: 'Read the style guide', ae_study_project: 'Study a project file' };
+      if (e.data.status === 'running' && c.reply) { c.textUsed = (c.lastText || '').length; c.reply = null; }
       if (e.data.status === 'running') {
+        // 1.4.0: back-to-back steps share one collapsible group, so long analyses don't flood the chat.
+        if (!c.toolGroup) c.toolGroup = toolGroup(c);
         c.activeTool = document.createElement('details'); c.activeTool.className = 'tool';
         var summary = document.createElement('summary'); summary.textContent = labels[e.data.name] || e.data.name;
-        c.activeTool.appendChild(summary); c.el.appendChild(c.activeTool);
+        c.activeTool.appendChild(summary); c.toolGroup.list.appendChild(c.activeTool);
+        c.toolGroup.steps.push({ label: summary.textContent, status: 'running' });
+        updateGroup(c.toolGroup, summary.textContent);
         $('activity').textContent = summary.textContent + '…';
       } else if (c.activeTool) {
         c.activeTool.className = 'tool ' + e.data.status;
         var p = document.createElement('p'); p.textContent = e.data.detail; c.activeTool.appendChild(p);
         if (e.data.image && /^data:image\/(jpeg|png);base64,/.test(e.data.image)) { var shot = document.createElement('img'); shot.className = 'tool-frames'; shot.alt = 'Frames Zeni looked at'; shot.src = e.data.image; c.activeTool.appendChild(shot); c.activeTool.open = true; }
         c.activeTool = null;
+        if (c.toolGroup) { var st = c.toolGroup.steps[c.toolGroup.steps.length - 1]; if (st) st.status = e.data.status; updateGroup(c.toolGroup, null); }
       }
       if (applyingCard && (e.data.name === 'ae_apply_actions' || e.data.name === 'ae_run_script') && e.data.status !== 'running') {
         applyingCard.querySelector('.confirm-outcome').textContent = e.data.status === 'done' ? (e.data.name === 'ae_run_script' ? 'Ran. Use Undo in After Effects to revert.' : 'Applied. Use Undo in After Effects to revert.') : 'Could not finish: ' + e.data.detail;
@@ -451,7 +490,8 @@
     if (e.type === 'end') {
       if (openCard) finishCard(openCard.card, 'declined', 'Cancelled. Nothing was changed.');
       if (e.data.stopped) message(c, 'assistant', 'Stopped. Any project changes already applied remain in After Effects; use Undo to revert them.');
-      c.reply = null; c.activeTool = null; c.attention = false;
+      if (c.toolGroup) { updateGroup(c.toolGroup, null, true); c.toolGroup = null; }
+      c.reply = null; c.activeTool = null; c.attention = false; c.textUsed = 0; c.lastText = '';
       runningId = null;
       setBusy(false); persist(); refreshTabStates(); refresh();
     }
@@ -615,7 +655,7 @@
     var taken = hasFiles ? attach.take() : null;
     message(c, 'user', text, taken ? taken.meta : null);
     $('prompt').value = '';
-    c.reply = null;
+    c.reply = null; c.textUsed = 0; c.lastText = '';
     runningId = c.id;
     setBusy(true); refreshTabStates();
     try { await runtime.send(text, $('mode').value, settings, c.id, prior, taken ? taken.files : []); }
