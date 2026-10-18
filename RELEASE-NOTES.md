@@ -1,3 +1,8 @@
+# Version 1.4.4
+
+- **Music layers are ticked for you.** In Settings > Zeni > Music to dance to, the layers Zeni picked automatically are now ticked, so you can see what he follows. Untick or tick a layer to choose yourself; Back to automatic undoes that.
+- Songs chopped into short sections are recognized as music too (a short cut of a big audio file), not only layers longer than 6 seconds.
+
 # Version 1.4.3
 
 - **Zeni has a personality.** A chill, music-obsessed editor who lives in the panel: laid-back, a little playful, honest, and genuinely hyped by a good transition or a good song. He talks like a friend from the editing community, short and casual, with no emojis.

@@ -48,7 +48,8 @@
   var MUSIC_MIN_SECONDS = 6, AUTO_MAX = 8;
   function autoPick(layers) {
     var list = (layers || []).filter(usable);
-    var long = list.filter(function (l) { return l.out - l.in >= MUSIC_MIN_SECONDS; });
+    // Music: a layer heard for a while, or a short cut of a big audio file (a song chopped into sections).
+    var long = list.filter(function (l) { return l.out - l.in >= MUSIC_MIN_SECONDS || (!l.video && l.bytes >= 1200000); });
     if (!long.length) { var one = pickLayer(list); return one ? [one] : []; }
     long.sort(function (a, b) { return (a.video - b.video) || ((b.out - b.in) - (a.out - a.in)); });
     return long.slice(0, AUTO_MAX);
@@ -233,23 +234,31 @@
     list.textContent = '';
     if (!info.compId) { hint.textContent = 'Open a comp to see its sound layers.'; return; }
     if (!info.sources.length) { hint.textContent = 'No layers with sound from a file in "' + info.compName + '".'; return; }
-    var autoText = function () { var n = info.sources.filter(function (s) { return s.auto; }).length; return 'Automatic: Zeni follows the ' + (n === 1 ? 'music layer' : n + ' music layers') + ' marked "auto" in "' + info.compName + '", whichever is playing. Check layers only to choose yourself.'; };
-    hint.textContent = info.pick.length ? 'Zeni follows the checked layers in "' + info.compName + '", whichever is playing.' : autoText();
+    var autoText = function () { var n = info.sources.filter(function (s) { return s.auto; }).length; return 'Automatic: Zeni picked the ' + (n === 1 ? 'music layer' : n + ' music layers') + ' in "' + info.compName + '" and follows whichever is playing. Change the ticks to choose yourself.'; };
+    var manualText = function () { return 'Your choice for "' + info.compName + '": Zeni follows the ticked layers, whichever is playing.'; };
+    hint.textContent = info.pick.length ? manualText() : autoText();
+    var reset = document.createElement('button'); reset.type = 'button'; reset.className = 'link-btn music-auto'; reset.textContent = 'Back to automatic';
+    reset.hidden = !info.pick.length;
+    reset.addEventListener('click', function () { window.ZenframeVibe.setPick(info.compId, []); refreshPick(); });
     info.sources.forEach(function (src) {
       var row = document.createElement('label'), box = document.createElement('input'), text = document.createElement('span'), sub = document.createElement('small');
-      box.type = 'checkbox'; box.value = src.id; box.checked = info.pick.indexOf(src.id) >= 0; box.disabled = !src.usable;
+      // Ticks show what Zeni follows right now: your picks, or his automatic choice.
+      box.type = 'checkbox'; box.value = src.id; box.checked = info.pick.length ? info.pick.indexOf(src.id) >= 0 : !!src.auto; box.disabled = !src.usable;
       text.textContent = src.name;
-      sub.textContent = [!info.pick.length && src.auto ? 'auto' : '', src.inPrecomp ? 'in a precomp' : src.video ? 'video file' : 'audio file', clockText(src.from) + '–' + clockText(src.to), src.bpm ? Math.round(src.bpm) + ' BPM' : src.failed ? 'could not read its sound' : '', src.usable ? '' : 'too large to analyze'].filter(Boolean).join(' · ');
+      sub.textContent = [!info.pick.length && src.auto ? 'picked automatically' : '', src.inPrecomp ? 'in a precomp' : src.video ? 'video file' : 'audio file', clockText(src.from) + '–' + clockText(src.to), src.bpm ? Math.round(src.bpm) + ' BPM' : src.failed ? 'could not read its sound' : '', src.usable ? '' : 'too large to analyze'].filter(Boolean).join(' · ');
       text.appendChild(sub); row.appendChild(box); row.appendChild(text);
       if (!src.usable) row.className = 'off';
       box.addEventListener('change', function () {
         var ids = Array.prototype.slice.call(list.querySelectorAll('input:checked')).map(function (b) { return b.value; });
         window.ZenframeVibe.setPick(info.compId, ids);
         info.pick = ids;
-        hint.textContent = ids.length ? 'Zeni follows the checked layers in "' + info.compName + '", whichever is playing.' : autoText();
+        hint.textContent = ids.length ? manualText() : autoText();
+        reset.hidden = !ids.length;
+        if (!ids.length) refreshPick();
       });
       list.appendChild(row);
     });
+    list.appendChild(reset);
   }
   function refreshPick() { if (cep) window.ZenframeVibe.sources(renderPick); }
   var refreshBtn = document.getElementById('musicPickRefresh');
