@@ -223,12 +223,21 @@
     });
   });
   item('Study a project file (.aep)', 'Zeni reads how it was built, without opening it', function () {
-    var picked = null;
-    try { var r = window.cep && window.cep.fs && window.cep.fs.showOpenDialogEx ? window.cep.fs.showOpenDialogEx(false, false, 'Choose an After Effects project', '', ['aep']) : null; picked = r && r.data && r.data[0]; } catch (e) {}
-    if (!picked) { if (!(window.cep && window.cep.fs)) note('Paste the full path of the .aep file into your message instead.'); return; }
-    var text = 'Study this project file and break down how it is built: ' + decodeURIComponent(String(picked).replace(/^file:\/\//, ''));
-    prompt.value = prompt.value ? prompt.value.replace(/\s*$/, '\n') + text : text;
-    prompt.dispatchEvent(new Event('input', { bubbles: true })); prompt.focus();
+    var use = function (picked) {
+      if (!picked) return;
+      var text = 'Study this project file and break down how it is built: ' + decodeURIComponent(String(picked).replace(/^file:\/\//, ''));
+      prompt.value = prompt.value ? prompt.value.replace(/\s*$/, '\n') + text : text;
+      prompt.dispatchEvent(new Event('input', { bubbles: true })); prompt.focus();
+    };
+    var oldDialog = function () {
+      var picked = null;
+      try { var r = window.cep && window.cep.fs && window.cep.fs.showOpenDialogEx ? window.cep.fs.showOpenDialogEx(false, false, 'Choose an After Effects project', '', ['aep']) : null; picked = r && r.data && r.data[0]; } catch (e) {}
+      if (!picked && !(window.cep && window.cep.fs)) note('Paste the full path of the .aep file into your message instead.');
+      use(picked);
+    };
+    // The modern Windows picker first; the older built-in one if that is not available.
+    if (window.ZenframePickFile) window.ZenframePickFile({ title: 'Choose an After Effects project', filter: 'After Effects projects (*.aep)|*.aep' }).then(use, oldDialog);
+    else oldDialog();
   });
   document.body.appendChild(menu); // outside the message box, which clips anything that pokes out of it
   function placeMenu() {

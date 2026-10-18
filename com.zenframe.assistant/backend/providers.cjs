@@ -11,9 +11,12 @@ const { URL } = require('url');
 const EFFORT_LEVELS = {
   claude: ['low', 'medium', 'high', 'xhigh', 'max'],
   openai: ['low', 'medium', 'high'],
-  // Codex CLI: model_reasoning_effort
-  codex: ['low', 'medium', 'high', 'xhigh']
+  // Codex CLI: model_reasoning_effort (shown as Light, Medium, High, Extra high, Ultra)
+  codex: ['low', 'medium', 'high', 'xhigh', 'ultra']
 };
+
+// Codex models (as listed in Codex's own model picker). The installed Codex's model cache is read too, when present.
+const CODEX_MODELS = ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-6-sol', 'gpt-6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'];
 
 // Models offered for Claude Code when no Anthropic key is available to fetch the live list.
 // Aliases always point at the newest model of that line.
@@ -322,4 +325,4 @@ function forgetToolImages(history, from) {
   }
 }
 
-module.exports = { forgetToolImages, PRESETS, EFFORT_LEVELS, CLAUDE_CODE_MODELS, checkBaseUrl, listModels, runAgent, toolsFor, cleanSchema, maxTokensFor, readRateHeaders, resetIn, openRouterKey, userContent, forgetImages };
+module.exports = { CODEX_MODELS, forgetToolImages, PRESETS, EFFORT_LEVELS, CLAUDE_CODE_MODELS, checkBaseUrl, listModels, runAgent, toolsFor, cleanSchema, maxTokensFor, readRateHeaders, resetIn, openRouterKey, userContent, forgetImages };

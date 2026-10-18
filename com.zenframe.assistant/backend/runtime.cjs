@@ -1,5 +1,5 @@
 'use strict';
-// Zenframe Assistant runtime, v1.4.1.
+// Zenframe Assistant runtime, v1.4.2.
 // Two ways to reach an AI:
 //  1. "Claude Code": runs the user's own, unmodified Claude Code and exposes the After Effects
 //     tools to it over a local, token-protected bridge (127.0.0.1 only) via mcp.cjs.
@@ -342,6 +342,30 @@ class Runtime {
     const voice = require('./voice.cjs');
     return voice.transcribe(wavBase64, { engine: (settings && settings.voiceEngine) || 'auto', keys: this.keys, language: (settings && settings.voiceLanguage) || '' });
   }
+  // 1.4.1: the modern Windows file picker (the CEP one is the old-style dialog). Resolves to a path or ''.
+  pickFile(opts) {
+    opts = opts || {};
+    if (!isWindows) return Promise.reject(new Error('Not available here.'));
+    const script = [
+      'Add-Type -AssemblyName System.Windows.Forms',
+      '[System.Windows.Forms.Application]::EnableVisualStyles()',
+      '$owner = New-Object System.Windows.Forms.Form',
+      '$owner.TopMost = $true; $owner.ShowInTaskbar = $false',
+      '$d = New-Object System.Windows.Forms.OpenFileDialog',
+      '$d.AutoUpgradeEnabled = $true; $d.Title = $env:ZF_TITLE; $d.Filter = $env:ZF_FILTER',
+      'if ($env:ZF_DIR -and (Test-Path -LiteralPath $env:ZF_DIR)) { $d.InitialDirectory = $env:ZF_DIR }',
+      '[Console]::OutputEncoding = [Text.Encoding]::UTF8',
+      'if ($d.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $d.FileName }',
+      '$owner.Dispose()'
+    ].join('; ');
+    const env = Object.assign({}, process.env, { ZF_TITLE: String(opts.title || 'Choose a file'), ZF_FILTER: String(opts.filter || 'All files (*.*)|*.*'), ZF_DIR: String(opts.dir || '') });
+    return new Promise((resolve, reject) => {
+      cp.execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-STA', '-ExecutionPolicy', 'Bypass', '-Command', script], { env, windowsHide: true, timeout: 15 * 60 * 1000 }, (err, stdout) => {
+        if (err) return reject(err);
+        resolve(String(stdout || '').trim().split(/\r?\n/).pop() || '');
+      });
+    });
+  }
   // 1.4.0: the .aep project reader (Python + py-aep).
   projectReaderStatus(settings) { return require('./study.cjs').status(settings || this.settings); }
   installProjectReader(settings) { return require('./study.cjs').install(settings || this.settings); }
@@ -357,7 +381,7 @@ class Runtime {
     return { id, preset, baseUrl, model };
   }
   async listModels(settings, freeOnly) {
-    if (providerOf(settings) === 'codex') return [];
+    if (providerOf(settings) === 'codex') return codexModels();
     if (providerOf(settings) === 'claude-code') {
       // With an Anthropic key, list the models that key can use; otherwise offer the known Claude models.
       const key = settings.authMode !== 'claude' ? await this.keys.get('anthropic') : null;
@@ -721,7 +745,8 @@ class Runtime {
       '-c', 'developer_instructions=' + toml(system)];
     const model = codexModel(settings);
     if (model) args.push('--model', model);
-    const effort = effortFor(settings);
+    let effort = effortFor(settings);
+    if (effort === 'ultra' && this.codexNoUltra) effort = 'xhigh';
     if (effort) args.push('-c', 'model_reasoning_effort=' + toml(effort));
     imageFiles.forEach(f => args.push('--image=' + f));
     args.push('-');
@@ -731,7 +756,7 @@ class Runtime {
     this.emit('start', { mode });
     let pending = '', stderr = '', failed = false;
     const parts = [];
-    let blocked = false;
+    let blocked = false, retryLower = false;
     const event = j => {
       // Some Codex versions cancel tool calls from MCP servers in this mode (a known Codex issue).
       if (j.type === 'item.completed' && j.item && j.item.type === 'mcp_tool_call' && j.item.error && /cancel/i.test(String(j.item.error.message || j.item.error)) && !blocked) {
@@ -742,8 +767,13 @@ class Runtime {
         parts.push(String(j.item.text).trim()); this.emit('text', parts.join('\n\n'));
       }
       if (j.type === 'turn.completed' && j.usage) this.emit('usage', { input: j.usage.input_tokens || 0, output: j.usage.output_tokens || 0 });
-      if (j.type === 'turn.failed') { failed = true; this.emit('error', this.redact((j.error && j.error.message) || 'Codex could not complete this request.')); }
-      if (j.type === 'error' && j.message && !/reconnecting/i.test(j.message)) { failed = true; this.emit('error', this.redact(j.message)); }
+      const msg = j.type === 'turn.failed' ? ((j.error && j.error.message) || 'Codex could not complete this request.') : j.type === 'error' && j.message && !/reconnecting/i.test(j.message) ? j.message : null;
+      if (msg) {
+        failed = true;
+        // A model or Codex version without Ultra: run again at Extra high instead of failing.
+        if (effort === 'ultra' && !parts.length && /effort|reasoning/i.test(msg)) retryLower = true;
+        else this.emit('error', this.redact(msg));
+      }
     };
     child.stdout.setEncoding('utf8'); child.stderr.setEncoding('utf8');
     child.stdout.on('data', chunk => {
@@ -763,6 +793,11 @@ class Runtime {
         imageFiles.forEach(f => { try { fs.unlinkSync(f); } catch (e) {} });
         this.active = false; this.child = null; this.runningId = null;
         if (this.pendingConfirm) { this.pendingConfirm(false); this.pendingConfirm = null; }
+        if (retryLower && !this.stopped) {
+          this.codexNoUltra = true;
+          this.emit('notice', 'This model or Codex version does not offer Ultra, so Zeni used Extra high instead.');
+          return resolve(this.sendCodex(prompt, mode, settings, convId, null, images));
+        }
         if (err && !failed) this.emit('error', this.redact(err));
         this.emit('end', { stopped: this.stopped });
         resolve();
@@ -795,6 +830,27 @@ class Runtime {
   close() { this.stop(); if (this.server) this.server.close(); this.server = null; }
 }
 
+// Codex models: the built-in list plus any newer ones in the installed Codex's model cache.
+function codexModels() {
+  const ids = providers.CODEX_MODELS.slice();
+  try {
+    const home = process.env.CODEX_HOME || path.join(process.env.USERPROFILE || process.env.HOME || '', '.codex');
+    const raw = JSON.parse(fs.readFileSync(path.join(home, 'models_cache.json'), 'utf8'));
+    const found = [];
+    (function walk(v, depth) {
+      if (!v || depth > 4) return;
+      if (Array.isArray(v)) return v.forEach(x => walk(x, depth + 1));
+      if (typeof v === 'object') {
+        const id = v.slug || v.id || v.model;
+        if (typeof id === 'string' && /^gpt-[\w.-]+$/i.test(id) && v.visibility !== 'hide' && v.hidden !== true) found.push(id);
+        Object.keys(v).forEach(k => { if (typeof v[k] === 'object') walk(v[k], depth + 1); });
+      }
+    })(raw, 0);
+    found.forEach(id => { if (!ids.includes(id)) ids.push(id); });
+  } catch (e) {}
+  return ids;
+}
+
 // Codex should use the user's ChatGPT sign-in, never a stray API key from the environment.
 function codexEnv() {
   const env = Object.assign({}, process.env);
@@ -802,4 +858,4 @@ function codexEnv() {
   return env;
 }
 
-module.exports = { Runtime, systemPrompt, findExecutables, KeyStore, PRESETS: providers.PRESETS, EFFORT_LEVELS: providers.EFFORT_LEVELS, CLAUDE_CODE_MODELS: providers.CLAUDE_CODE_MODELS };
+module.exports = { Runtime, systemPrompt, findExecutables, KeyStore, PRESETS: providers.PRESETS, EFFORT_LEVELS: providers.EFFORT_LEVELS, CLAUDE_CODE_MODELS: providers.CLAUDE_CODE_MODELS, CODEX_MODELS: providers.CODEX_MODELS };

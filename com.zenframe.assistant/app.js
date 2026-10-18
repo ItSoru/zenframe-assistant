@@ -1,8 +1,8 @@
-/* Zenframe Assistant panel, v1.4.1. */
+/* Zenframe Assistant panel, v1.4.2. */
 (function () {
   'use strict';
 
-  var VERSION = '1.4.1';
+  var VERSION = '1.4.2';
   // Set this to your download page to show a "Check for updates" link in Settings.
   var UPDATE_URL = '';
   var MAX_CONVS = 20, MAX_MESSAGES = 80, PRIOR_MESSAGES = 16, MAX_SAVED_CHARS = 20000;
@@ -18,8 +18,10 @@
   var modelLists = {};
   var effort = null;
   // Effort levels per kind of provider (replaced by the backend's list when it loads).
-  var EFFORT_LEVELS = { claude: ['low', 'medium', 'high', 'xhigh', 'max'], openai: ['low', 'medium', 'high'], codex: ['low', 'medium', 'high', 'xhigh'] };
+  var EFFORT_LEVELS = { claude: ['low', 'medium', 'high', 'xhigh', 'max'], openai: ['low', 'medium', 'high'], codex: ['low', 'medium', 'high', 'xhigh', 'ultra'] };
   var EFFORT_LABELS = { low: 'Low', medium: 'Medium', high: 'High', xhigh: 'Extra', max: 'Max' };
+  var CODEX_MODELS = ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-6-sol', 'gpt-6-luna', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'];
+  var CODEX_EFFORT_LABELS = { low: 'Light', medium: 'Medium', high: 'High', xhigh: 'Extra high', ultra: 'Ultra' };
   var CC_MODELS = ['opus', 'sonnet', 'haiku', 'fable', 'claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-1'];
   var nativeCEP = window.__adobe_cep__;
   var nodeRequire = window.cep_node ? window.cep_node.require : typeof require === 'function' ? require : null;
@@ -526,7 +528,7 @@
     $('codexPathRow').hidden = !codex;
     $('loginGroup').hidden = !(cc && settings.authMode === 'claude');
     $('directGroup').hidden = cc || codex;
-    $('loadModels').hidden = codex; // Codex has no model list; pick its default or type a name
+    $('loadModels').hidden = false;
     var showKey = codex ? false : cc ? settings.authMode !== 'claude' : !!(p && (p.needsKey || p.optionalKey));
     $('apiKeyGroup').hidden = !showKey;
     $('apiKeyLabel').textContent = shortName() + ' API key' + (p && p.optionalKey ? ' (optional)' : '');
@@ -555,6 +557,8 @@
     id = String(id || '');
     var alias = { opus: 'Opus (latest)', sonnet: 'Sonnet (latest)', haiku: 'Haiku (latest)', fable: 'Fable (latest)' };
     if (alias[id]) return alias[id];
+    var g = /^gpt-([\d.]+)(?:-([a-z]+))?$/i.exec(id);
+    if (g) return 'GPT-' + g[1] + (g[2] ? ' ' + g[2].charAt(0).toUpperCase() + g[2].slice(1) : '');
     var cap = function (s) { return s.charAt(0).toUpperCase() + s.slice(1); };
     // Newer style: claude-opus-5-5, claude-opus-4-5-20251101, claude-opus-5
     var m = /^claude-(opus|sonnet|haiku|fable|mythos)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/.exec(id);
@@ -564,7 +568,7 @@
     if (m) return cap(m[3]) + ' ' + m[1] + (m[2] ? '.' + m[2] : '');
     return id;
   }
-  function modelChoices(id) { return modelLists[id] || (id === 'claude-code' ? CC_MODELS : []); }
+  function modelChoices(id) { return modelLists[id] || (id === 'claude-code' ? CC_MODELS : id === 'codex' ? CODEX_MODELS : []); }
   function fillModels(id) {
     var sel = $('modelSelect'), list = modelChoices(id), current = (settings.models || {})[id] || '';
     sel.textContent = '';
@@ -582,7 +586,8 @@
   /* ---------- Effort ---------- */
   function effortLevels() {
     var id = settings.provider, kind = id === 'claude-code' ? 'claude' : id === 'codex' && EFFORT_LEVELS.codex ? 'codex' : (PRESETS[id] || {}).effort || 'openai';
-    return (EFFORT_LEVELS[kind] || EFFORT_LEVELS.openai).map(function (k) { return { key: k, label: EFFORT_LABELS[k] || k }; });
+    var names = kind === 'codex' ? CODEX_EFFORT_LABELS : EFFORT_LABELS;
+    return (EFFORT_LEVELS[kind] || EFFORT_LEVELS.openai).map(function (k) { return { key: k, label: names[k] || k }; });
   }
   function effortState() {
     var id = settings.provider, levels = effortLevels(), v = (settings.efforts || {})[id] || null;
@@ -688,6 +693,7 @@
         PRESETS = backend.PRESETS || {};
         if (backend.EFFORT_LEVELS) EFFORT_LEVELS = backend.EFFORT_LEVELS;
         if (backend.CLAUDE_CODE_MODELS) CC_MODELS = backend.CLAUDE_CODE_MODELS;
+        if (backend.CODEX_MODELS) CODEX_MODELS = backend.CODEX_MODELS;
         var found = backend.findExecutables();
         settings.claudePath = settings.claudePath || found.claudePath;
         settings.codexPath = settings.codexPath || found.codexPath || '';
@@ -697,6 +703,7 @@
           analyzeAudioFile: function (p) { return window.ZenframeListen ? window.ZenframeListen.analyzePath(p) : Promise.reject(Error('Audio analysis is not loaded.')); },
           analyzeAudio: function (a) { return window.ZenframeListen ? window.ZenframeListen.analyze(a, host) : Promise.resolve({ error: 'Audio analysis is not loaded.' }); },
           openExtension: function (id) { nativeCEP.requestOpenExtension(id, ''); } });
+        if (runtime.pickFile && /win/i.test(navigator.platform)) window.ZenframePickFile = function (o) { return runtime.pickFile(o); };
         if (window.ZenframeUsage) window.ZenframeUsage.onRefresh(refreshUsage);
         if (window.ZenframeVoice) window.ZenframeVoice.init({
           settings: function () { return settings; },
@@ -795,7 +802,7 @@
   $('freeOnly').onchange = function () { settings.freeOnly = $('freeOnly').checked; saveSettings(); };
   $('loadModels').onclick = async function () {
     if (!runtime) { $('modelStatus').textContent = 'Open the panel inside After Effects first.'; return; }
-    var p = preset() || { label: 'Claude Code' };
+    var p = preset() || { label: settings.provider === 'codex' ? 'Codex' : 'Claude Code' };
     if (p.editableUrl) settings.baseUrls[settings.provider] = $('baseUrl').value.trim();
     $('loadModels').disabled = true;
     $('modelStatus').textContent = 'Loading models from ' + p.label + '…';

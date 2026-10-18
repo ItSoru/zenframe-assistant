@@ -1,3 +1,10 @@
+# Version 1.4.2
+
+- **Pick a Codex model.** The model menu lists Codex's models: GPT-6.1 Sol, GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-5.6 Sol, GPT-5.6 Terra and GPT-5.6 Luna, plus any newer ones your installed Codex knows about (Load models refreshes the list). Default still lets Codex decide.
+- **Codex effort levels match Codex:** Light, Medium, High, Extra high and Ultra. If a model or Codex version does not offer Ultra, Zeni runs the request again at Extra high and says so.
+- **Modern file picker** for Paperclip > Study a project file, the same Windows dialog as attaching files.
+- Step dropdowns follow the wallpaper's glass look and transparency.
+
 # Version 1.4.1
 
 - **Tidier work steps.** Back-to-back steps (reading the comp, inspecting layers, rendering frames...) sit in one dropdown. While Zeni works it shows what he is doing now and how many steps so far; when he is done it reads "Worked through 12 steps" with a breakdown such as "Inspect layer properties x9". Click it to see every step, its result and any frames he rendered.

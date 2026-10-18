@@ -29,7 +29,7 @@ html.has-wallpaper .mark, html.has-wallpaper .ef-pill-label { text-shadow: none;
 /* Glass surfaces: a dark tint with the wallpaper blurred behind it, a faint top sheen and a light edge. */
 html.has-wallpaper header, html.has-wallpaper nav, html.has-wallpaper .context, html.has-wallpaper footer,
 html.has-wallpaper #chatView, html.has-wallpaper #scriptsView, html.has-wallpaper .composer, html.has-wallpaper .suggestions button, html.has-wallpaper .message.user,
-html.has-wallpaper .tool, html.has-wallpaper .confirm-card, html.has-wallpaper .conv-tab,
+html.has-wallpaper .tool, html.has-wallpaper .tool-group, html.has-wallpaper .confirm-card, html.has-wallpaper .conv-tab,
 html.has-wallpaper .conv-new, html.has-wallpaper .effort-pill, html.has-wallpaper .approval-switch select,
 html.has-wallpaper .accent-presets button, html.has-wallpaper .secondary, html.has-wallpaper select {
   background: linear-gradient(180deg, rgba(255, 255, 255, .03), rgba(255, 255, 255, 0) 60%), var(--glass) !important;
@@ -38,7 +38,7 @@ html.has-wallpaper .accent-presets button, html.has-wallpaper .secondary, html.h
   border-color: var(--glass-edge) !important;
 }
 html.has-wallpaper .composer, html.has-wallpaper .suggestions button, html.has-wallpaper .message.user,
-html.has-wallpaper .tool, html.has-wallpaper .confirm-card {
+html.has-wallpaper .tool, html.has-wallpaper .tool-group, html.has-wallpaper .confirm-card {
   box-shadow: inset 0 1px 0 var(--glass-light), inset 0 -1px 0 rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .28) !important;
 }
 html.has-wallpaper header, html.has-wallpaper nav, html.has-wallpaper .context { border-bottom-color: var(--glass-edge) !important; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .04); }
@@ -71,3 +71,6 @@ html.has-wallpaper ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .
 .range-label { display: flex; justify-content: space-between; margin: 12px 0 6px; font-size: 12px; }
 #wallpaperBlur, #wallpaperVisibility { width: 100%; accent-color: var(--accent-fill); }
 #wallpaperPalette { margin: 6px 0 12px; }
+
+/* 1.4.2: steps inside a step group sit on the group's glass instead of stacking a second layer. */
+html.has-wallpaper .tool-group .tg-list .tool { background: rgba(255, 255, 255, .03) !important; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none !important; }
