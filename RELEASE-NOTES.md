@@ -1,3 +1,9 @@
+# Version 1.4.3
+
+- **Zeni has a personality.** A chill, music-obsessed editor who lives in the panel: laid-back, a little playful, honest, and genuinely hyped by a good transition or a good song. He talks like a friend from the editing community, short and casual, with no emojis.
+- **Not only for editing.** Talk to Zeni about anything: music, anime, games, school, life. When an edit is stressing you out he listens, helps break the problem into small steps or tells you to take a break, and does not drag you back to the project unless you want to. Casual chats don't touch your project.
+- **Music picked automatically.** Zeni now dances to every music layer in the comp on his own, including split songs, several songs, MP4s and audio inside precomps; short sound effects are left out. Settings > Zeni > Music to dance to marks them "auto". Checking layers there still overrides it.
+
 # Version 1.4.2
 
 - **Pick a Codex model.** The model menu lists Codex's models: GPT-6.1 Sol, GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-5.6 Sol, GPT-5.6 Terra and GPT-5.6 Luna, plus any newer ones your installed Codex knows about (Load models refreshes the list). Default still lets Codex decide.

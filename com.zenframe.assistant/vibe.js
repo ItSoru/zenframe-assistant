@@ -42,12 +42,22 @@
     list.sort(function (a, b) { return (a.video - b.video) || ((b.out - b.in) - (a.out - a.in)); });
     return list[0] || null;
   }
-  // The layers Zeni follows in this comp: the ones picked in Settings, or his own choice.
+  // Automatic: every layer that sounds like music (long enough to be a song or a section of one, audio files
+  // first), so split songs, several songs, MP4s and precomps all work without picking anything.
+  // Short layers (sound effects) are left out. Zeni follows whichever of them is playing.
+  var MUSIC_MIN_SECONDS = 6, AUTO_MAX = 8;
+  function autoPick(layers) {
+    var list = (layers || []).filter(usable);
+    var long = list.filter(function (l) { return l.out - l.in >= MUSIC_MIN_SECONDS; });
+    if (!long.length) { var one = pickLayer(list); return one ? [one] : []; }
+    long.sort(function (a, b) { return (a.video - b.video) || ((b.out - b.in) - (a.out - a.in)); });
+    return long.slice(0, AUTO_MAX);
+  }
+  // The layers Zeni follows in this comp: the ones picked in Settings, or the automatic choice.
   function chosen(layers, id) {
     var pick = picks[id] || [];
     if (pick.length) return (layers || []).filter(function (l) { return pick.indexOf(sourceId(l)) >= 0 && usable(l); });
-    var one = pickLayer(layers);
-    return one ? [one] : [];
+    return autoPick(layers);
   }
   function analyze(layer) {
     var key = fileKey(layer);
@@ -87,7 +97,8 @@
     call('ZenframeVibeAudio', function (j) {
       if (!j || !j.c) { songs = []; sources = []; compId = 0; lastLayers = []; if (done) done(); return; }
       compId = j.c; compName = j.name || ''; lastLayers = j.layers || [];
-      sources = lastLayers.map(function (l) { return { id: sourceId(l), name: l.name, video: l.video, inPrecomp: l.inPrecomp, from: l.in, to: l.out, usable: usable(l), bpm: memo[fileKey(l)] ? memo[fileKey(l)].r.bpm * 100 / l.stretch : null, failed: !!failedKeys[fileKey(l)] }; });
+      var autoIds = autoPick(lastLayers).map(sourceId);
+      sources = lastLayers.map(function (l) { return { id: sourceId(l), auto: autoIds.indexOf(sourceId(l)) >= 0, name: l.name, video: l.video, inPrecomp: l.inPrecomp, from: l.in, to: l.out, usable: usable(l), bpm: memo[fileKey(l)] ? memo[fileKey(l)].r.bpm * 100 / l.stretch : null, failed: !!failedKeys[fileKey(l)] }; });
       rebuild();
       if (done) done();
     });
@@ -222,19 +233,20 @@
     list.textContent = '';
     if (!info.compId) { hint.textContent = 'Open a comp to see its sound layers.'; return; }
     if (!info.sources.length) { hint.textContent = 'No layers with sound from a file in "' + info.compName + '".'; return; }
-    hint.textContent = info.pick.length ? 'Zeni follows the checked layers in "' + info.compName + '", whichever is playing.' : 'Automatic: Zeni picks the music in "' + info.compName + '". Check layers to choose yourself (one or more).';
+    var autoText = function () { var n = info.sources.filter(function (s) { return s.auto; }).length; return 'Automatic: Zeni follows the ' + (n === 1 ? 'music layer' : n + ' music layers') + ' marked "auto" in "' + info.compName + '", whichever is playing. Check layers only to choose yourself.'; };
+    hint.textContent = info.pick.length ? 'Zeni follows the checked layers in "' + info.compName + '", whichever is playing.' : autoText();
     info.sources.forEach(function (src) {
       var row = document.createElement('label'), box = document.createElement('input'), text = document.createElement('span'), sub = document.createElement('small');
       box.type = 'checkbox'; box.value = src.id; box.checked = info.pick.indexOf(src.id) >= 0; box.disabled = !src.usable;
       text.textContent = src.name;
-      sub.textContent = [src.inPrecomp ? 'in a precomp' : src.video ? 'video file' : 'audio file', clockText(src.from) + '–' + clockText(src.to), src.bpm ? Math.round(src.bpm) + ' BPM' : src.failed ? 'could not read its sound' : '', src.usable ? '' : 'too large to analyze'].filter(Boolean).join(' · ');
+      sub.textContent = [!info.pick.length && src.auto ? 'auto' : '', src.inPrecomp ? 'in a precomp' : src.video ? 'video file' : 'audio file', clockText(src.from) + '–' + clockText(src.to), src.bpm ? Math.round(src.bpm) + ' BPM' : src.failed ? 'could not read its sound' : '', src.usable ? '' : 'too large to analyze'].filter(Boolean).join(' · ');
       text.appendChild(sub); row.appendChild(box); row.appendChild(text);
       if (!src.usable) row.className = 'off';
       box.addEventListener('change', function () {
         var ids = Array.prototype.slice.call(list.querySelectorAll('input:checked')).map(function (b) { return b.value; });
         window.ZenframeVibe.setPick(info.compId, ids);
         info.pick = ids;
-        hint.textContent = ids.length ? 'Zeni follows the checked layers in "' + info.compName + '", whichever is playing.' : 'Automatic: Zeni picks the music in "' + info.compName + '". Check layers to choose yourself (one or more).';
+        hint.textContent = ids.length ? 'Zeni follows the checked layers in "' + info.compName + '", whichever is playing.' : autoText();
       });
       list.appendChild(row);
     });
