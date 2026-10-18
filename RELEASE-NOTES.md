@@ -1,3 +1,11 @@
+# Version 1.3.1
+
+- **Edit reviews respect your style.** Zeni treats editing choices as intentional (low or choppy frame rates, interpolated or slowed image sequences, stacked or overlapping adjustment layers, one-frame flashes, doubled grades, hard audio cuts, black endings, messy projects) and no longer lists them as problems. Without knowing your style, it gives a short breakdown of how the edit is built and asks what feedback you want. It only flags things that are broken in any style, phrased as questions, and judges creative choices on the style's own terms: sync, impact on beats, flow and pacing against the song. No more generic praise or cleanup tips.
+- **Your editing style:** a new box in Settings. Describe how you edit and Zeni reads it before every review.
+- **Dancing follows real playback.** After Effects keeps answering the panel during playback without moving its playhead, so 1.3.0 only danced while you dragged the time slider. Zeni now listens for After Effects' output level through Windows (the level only, never the sound) and dances from the playhead while the comp makes sound. He stops when the sound stops or the playhead jumps. Settings > Zeni shows how music is detected.
+- Fixed: the paperclip menu (Files from this computer / Selected video layer) was hidden behind the edge of the message box.
+- Fixed: the mic button looked like it stopped recording when the mouse was over it.
+
 # Version 1.3.0
 
 - **Zeni vibes to the music in your comp.** When a comp with a song plays, Zeni dances on the beat within a moment. The song's tempo and beat grid are worked out once, locally, from the audio file, including the layer's time stretch, and remembered. Under 105 BPM: a chill sway with his hands in his hoodie pockets. 105 to 160 BPM: head bob up and down. Over 160 BPM: head bob on every other beat. Smooth blending between poses and a soft smear on the head drop. While he is thinking, working, waiting for approval or showing an error he keeps that pose and only bounces. Settings > Zeni: **Dance to music** toggle, **Smear** and **Bounce** sliders. Nothing about the project changes and no audio leaves your computer.

@@ -1,10 +1,17 @@
-# Zenframe Assistant 1.3.0
+# Zenframe Assistant 1.3.1
 
 ## Zeni companion
 
 Zeni sits beside the message box and changes pose with the assistant's activity. Click him to wave, or drag him to pick him up and let go to drop him. He stays wherever you drop him; double-click him to send him back to his seat. His hoodie, hair streak, eyes, headphones and shoes follow your accent color. Settings → Zeni → **Size** sets how big he is. Settings → Zeni → **Show Zeni on the message box** turns the companion off and restores the prior layout; the preference stays on this computer. System reduced-motion preferences disable swing, breathing and decorative transitions.
 
 The thought bubble mirrors the activity status; long text is shortened visually, while the original status remains available to screen readers. The sprites adapt to the accent locally without sending images or settings anywhere. Skin, black hair, outlines and white shoe sections remain unchanged. The eight PNG poses use a common seat anchor so changing state keeps their seating position stable.
+
+## New in 1.3.1
+
+- **Feedback that respects your style.** Ask Zeni to review an edit and it treats your choices (frame rate, interpolated frames, stacked adjustment layers, black endings and so on) as intentional. If it doesn't know your style yet, it describes how the edit is built and asks what you want feedback on. Only things that can't be intentional, such as an effect that can't change anything, are flagged, as questions.
+- **Your editing style** (Settings): describe how you edit and Zeni keeps it in mind for every review.
+- Zeni dances when the comp actually plays (he listens for After Effects' sound) instead of when you drag the time slider.
+- Fixed: the paperclip menu didn't show up. The mic button stays red under the mouse while recording.
 
 ## New in 1.3.0
 

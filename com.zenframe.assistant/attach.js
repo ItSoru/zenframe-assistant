@@ -222,10 +222,16 @@
       window.ZenframeAttach.addPath(j.path, j.name, { in: Math.max(0, j.in * k), out: Math.max(0, j.out * k) });
     });
   });
-  composer.appendChild(menu);
+  document.body.appendChild(menu); // outside the message box, which clips anything that pokes out of it
+  function placeMenu() {
+    var c = composer.getBoundingClientRect(), b = button.getBoundingClientRect();
+    menu.style.left = Math.max(8, Math.min(b.left - 4, innerWidth - menu.offsetWidth - 8)) + 'px';
+    menu.style.bottom = (innerHeight - c.top + 6) + 'px';
+  }
   function closeMenu() { menu.hidden = true; button.setAttribute('aria-expanded', 'false'); }
   button.setAttribute('aria-haspopup', 'menu'); button.setAttribute('aria-expanded', 'false');
-  button.addEventListener('click', function (e) { e.stopPropagation(); menu.hidden = !menu.hidden; button.setAttribute('aria-expanded', String(!menu.hidden)); if (!menu.hidden) menu.querySelector('button').focus(); });
+  button.addEventListener('click', function (e) { e.stopPropagation(); menu.hidden = !menu.hidden; button.setAttribute('aria-expanded', String(!menu.hidden)); if (!menu.hidden) { placeMenu(); menu.querySelector('button').focus(); } });
+  window.addEventListener('resize', function () { if (!menu.hidden) placeMenu(); });
   document.addEventListener('click', function (e) { if (!menu.hidden && !menu.contains(e.target)) closeMenu(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !menu.hidden) { closeMenu(); button.focus(); } });
   input.addEventListener('change', function () { add(input.files); input.value = ''; prompt.focus(); });

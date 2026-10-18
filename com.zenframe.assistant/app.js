@@ -1,8 +1,8 @@
-/* Zenframe Assistant panel, v1.3.0. */
+/* Zenframe Assistant panel, v1.3.1. */
 (function () {
   'use strict';
 
-  var VERSION = '1.3.0';
+  var VERSION = '1.3.1';
   // Set this to your download page to show a "Check for updates" link in Settings.
   var UPDATE_URL = '';
   var MAX_CONVS = 20, MAX_MESSAGES = 80, PRIOR_MESSAGES = 16, MAX_SAVED_CHARS = 20000;
@@ -41,7 +41,7 @@
   }
   function saveSettings() {
     refreshUsage();
-    store('settings', { provider: settings.provider, claudePath: settings.claudePath || '', codexPath: settings.codexPath || '', nodePath: settings.nodePath || '', authMode: settings.authMode, confirmEdits: settings.confirmEdits, models: settings.models, baseUrls: settings.baseUrls, freeOnly: settings.freeOnly, efforts: settings.efforts, voiceEngine: settings.voiceEngine || 'auto', voiceMic: settings.voiceMic || '' });
+    store('settings', { provider: settings.provider, claudePath: settings.claudePath || '', codexPath: settings.codexPath || '', nodePath: settings.nodePath || '', authMode: settings.authMode, confirmEdits: settings.confirmEdits, models: settings.models, baseUrls: settings.baseUrls, freeOnly: settings.freeOnly, efforts: settings.efforts, voiceEngine: settings.voiceEngine || 'auto', voiceMic: settings.voiceMic || '', editStyle: settings.editStyle || '' });
   }
 
   /* ---------- Bridge to ExtendScript ---------- */
@@ -768,6 +768,8 @@
     finally { $('loadModels').disabled = busy; }
   };
   $('confirmEdits').onchange = function () { setApproval($('confirmEdits').checked); };
+  $('editStyle').value = settings.editStyle || '';
+  $('editStyle').addEventListener('input', function () { settings.editStyle = $('editStyle').value.slice(0, 600); saveSettings(); });
   $('saveSettings').onclick = function () {
     settings.claudePath = $('claudePath').value.trim();
     settings.codexPath = $('codexPath').value.trim();

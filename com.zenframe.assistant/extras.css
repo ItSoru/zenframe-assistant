@@ -129,7 +129,7 @@ html.has-wallpaper .composer.drop-over::after { background: rgba(10, 10, 14, .86
 
 /* ---------- 1.3.0: attach menu, video chips, mic button ---------- */
 .attach-menu {
-  position: absolute; left: 8px; bottom: calc(100% + 6px); z-index: 30; min-width: 230px; padding: 5px;
+  position: fixed; left: 8px; bottom: 120px; z-index: 40; min-width: 230px; padding: 5px;
   border: 1px solid #2f2d34; border-radius: 14px; background: #1c1b21; box-shadow: 0 14px 40px rgba(0, 0, 0, .5);
   animation: attach-in .22s cubic-bezier(.2, .9, .3, 1.15);
 }
@@ -150,3 +150,6 @@ html.has-wallpaper .composer.drop-over::after { background: rgba(10, 10, 14, .86
 @keyframes mic-think { 50% { opacity: .35; } }
 html.has-wallpaper .mic-btn:not(.mic-recording), html.has-wallpaper .attach-menu { background: var(--glass-strong) !important; -webkit-backdrop-filter: blur(calc(var(--wp-blur, 16px) + 6px)) saturate(150%); backdrop-filter: blur(calc(var(--wp-blur, 16px) + 6px)) saturate(150%); border-color: var(--glass-edge) !important; }
 @media (prefers-reduced-motion: reduce) { .attach-menu, .mic-btn.mic-busy svg { animation: none !important; } }
+
+/* 1.3.1: editing style box in Settings. */
+.edit-style { display: block; width: 100%; min-height: 64px; resize: vertical; background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 10px; font-size: 12px; line-height: 1.5; margin-bottom: 6px; }

@@ -181,6 +181,10 @@
   <label class="check"><input id="confirmEdits" type="checkbox" checked> Ask me before Zeni applies project edits</label>
   <p class="help">On: every batch of edits is shown first with Apply and Decline. Off: edits apply right away (each batch is still one Undo step). You can also switch this under the message box.</p>
 
+  <h3><label for="editStyle">Your editing style</label></h3>
+  <textarea id="editStyle" class="edit-style" rows="3" maxlength="600" placeholder="For example: MMV editor, 20 fps choppy style, interpolated manga panels, stacked shakes on every cut"></textarea>
+  <p class="help">Zeni reads this before giving feedback, so it judges your edits on your style's terms. Saved on this computer.</p>
+
   <section class="appearance" aria-labelledby="appearanceTitle">
     <h3 id="appearanceTitle">Accent color</h3>
     <p class="help">Change the highlight color.</p>
@@ -256,7 +260,7 @@
   </div>
   <button id="clearHistory" class="secondary">Delete all conversations</button>
   <p class="help">Deletes every conversation saved in this panel. To remove just one, close its tab.</p>
-  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.3.0</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
+  <p class="help version-line">Zenframe Assistant <span id="versionLabel">1.3.1</span> <a id="updatesLink" href="#" hidden>Check for updates</a></p>
 </section>
 
 <footer><span><i></i> ZENFRAME</span><span>Unofficial · bring your own AI</span></footer>
